@@ -284,14 +284,15 @@ export default function App() {
     try {
       let imageUrl = editingProduct.image;
 
+      // העלאת תמונה חדשה אם נבחר קובץ
       if (fileInputRef.current?.files?.[0]) {
         const file = fileInputRef.current.files[0];
         const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}.${fileExt}`;
+        const fileName = `edit_${Date.now()}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from('product-images')
-          .upload(fileName, file);
+          .upload(fileName, file, { upsert: true });
 
         if (!uploadError) {
           const { data } = supabase.storage
@@ -308,20 +309,20 @@ export default function App() {
           title: editingProduct.title,
           category: editingProduct.category,
           shape: editingProduct.shape,
-          carat: Number(editingProduct.carat),
+          carat: parseFloat(String(editingProduct.carat)) || 1.0,
           color: editingProduct.color,
           clarity: editingProduct.clarity,
           cut: editingProduct.cut,
-          price: Number(editingProduct.price),
+          price: parseFloat(String(editingProduct.price)) || 0,
           status: editingProduct.status,
-          certificate: editingProduct.certificate,
+          certificate: editingProduct.certificate || 'GIA',
           image: imageUrl
         })
         .eq('id', editingProduct.id);
 
       if (error) {
-        console.error(error);
-        alert('שגיאה בעדכון הפריט');
+        console.error('Supabase update error:', error);
+        alert(`שגיאה בעדכון הפריט: ${error.message}`);
       } else {
         setProducts(prev => prev.map(p => p.id === editingProduct.id ? { ...editingProduct, image: imageUrl } : p));
         setEditingProduct(null);
@@ -329,7 +330,7 @@ export default function App() {
         if (fileInputRef.current) fileInputRef.current.value = '';
         alert('הפריט עודכן בהצלחה!');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       alert('שגיאה בעדכון הפריט');
     }
