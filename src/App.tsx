@@ -1,12 +1,7 @@
-cat << 'EOF' > src/App.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Diamond, 
-  ShieldCheck, 
-  Sparkles, 
-  Award, 
   Phone, 
-  Mail, 
   MapPin, 
   Lock, 
   Plus, 
@@ -16,16 +11,11 @@ import {
   Menu, 
   Search, 
   Filter, 
-  ChevronDown, 
-  ExternalLink, 
-  Eye, 
   Check, 
-  HelpCircle, 
   SlidersHorizontal,
   ArrowRight,
   LogOut,
-  RefreshCw,
-  ShoppingBag
+  RefreshCw
 } from 'lucide-react';
 import { supabase } from './supabase';
 
@@ -155,7 +145,6 @@ export default function App() {
   const [selectedShape, setSelectedShape] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [priceRange, setPriceRange] = useState<number>(100000);
-  const [selectedProduct, setSelectedProduct] = useState<DiamondProduct | null>(null);
 
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
@@ -278,7 +267,7 @@ export default function App() {
       } else {
         if (factorsData?.totp) {
           for (const factor of factorsData.totp) {
-            if (factor.status === 'unverified') {
+            if ((factor.status as string) === 'unverified') {
               await supabase.auth.mfa.unenroll({ factorId: factor.id });
             }
           }
@@ -988,7 +977,6 @@ export default function App() {
                     </select>
                   </div>
 
-                  {/* Image Upload Input */}
                   <div className="sm:col-span-2 lg:col-span-4 p-4 rounded-2xl bg-[#FAF8F5] border border-dashed border-[#D5C7B2] flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                       <input
@@ -1031,7 +1019,7 @@ export default function App() {
                 </form>
               </div>
 
-              {/* Products Table (Desktop & Mobile Cards) */}
+              {/* Products Table */}
               <div className="bg-white rounded-3xl border border-[#EDE6DC] shadow-xs overflow-hidden">
                 <div className="p-6 border-b border-[#EDE6DC] flex justify-between items-center">
                   <h3 className="font-serif font-bold text-base text-[#1C1A17]">
@@ -1115,7 +1103,6 @@ export default function App() {
                   </table>
                 </div>
 
-                {/* Mobile Cards View */}
                 <div className="block lg:hidden divide-y divide-[#EDE6DC]">
                   {products.map(p => {
                     const shapeObj = SHAPES_DATA.find(s => s.value === p.shape);
@@ -1747,4 +1734,3 @@ export default function App() {
     </div>
   );
 }
-EOF
