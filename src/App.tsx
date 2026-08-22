@@ -22,7 +22,13 @@ import {
   Save,
   ShieldCheck,
   Award,
-  Calendar
+  Calendar,
+  Layers,
+  Image as ImageIcon,
+  FileText,
+  Settings,
+  Eye,
+  Trash
 } from 'lucide-react';
 import { supabase } from './supabase';
 
@@ -65,35 +71,42 @@ export interface DiamondProduct {
   created_at?: string;
 }
 
-const PHONE_NUMBER = '0544847078';
-const DISPLAY_PHONE = '054-4847078';
-const WHATSAPP_LINK = `https://wa.me/972544847078?text=${encodeURIComponent('שלום אריק, הגעתי דרך האתר ואשמח לייעוץ בנוגע לטבעות ויהלומים בעיצוב אישי.')}`;
+export interface CarouselSlide {
+  id: string;
+  image: string;
+  title: string;
+  tag: string;
+}
 
 const DEFAULT_MARQUEE_TEXT = '✦ Arik Yakobov Diamonds 💎 | ייצור תכשיטי יוקרה בעיצוב אישי | Lab & Natural Diamonds | 📍 בורסת היהלומים רמת גן, בניין שמשון | 📞 054-4847078 | תעודות גמולוגיות בינלאומיות GIA / IGI ✦';
 
-// רשימת התמונות שרצות בסליידר דף הבית
-const HERO_SLIDES = [
+const DEFAULT_CAROUSEL_SLIDES: CarouselSlide[] = [
   {
+    id: '1',
     image: '/images/ring-marquise.webp',
     title: 'טבעת סוליטר מרקיזה 1.80 קראט',
     tag: 'יהלום טבעי Natural'
   },
   {
+    id: '2',
     image: '/images/ring-round-solitaire.webp',
     title: 'טבעת סוליטר קלאסית 6 שיניים',
     tag: 'חיתוך עגול מושלם'
   },
   {
+    id: '3',
     image: '/images/ring-cushion-pave.webp',
     title: 'טבעת קושיון בשיבוץ Pavé',
     tag: 'Lab Diamond יוקרתי'
   },
   {
+    id: '4',
     image: '/images/ring-oval-gold.webp',
     title: 'טבעת אובל בזהב צהוב 18K',
     tag: 'הילה נסתרת Hidden Halo'
   },
   {
+    id: '5',
     image: '/images/ring-round-split.webp',
     title: 'טבעת סוליטר חישוק כפול משובץ',
     tag: 'ייצור אישי בבורסה'
@@ -204,22 +217,30 @@ export default function App() {
   const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(false);
   const [selectedProductView, setSelectedProductView] = useState<DiamondProduct | null>(null);
 
-  // סליידר מתחלף כל 3.5 שניות
+  // Dynamic Site Settings (Saved in localStorage / state)
+  const [phoneText, setPhoneText] = useState(() => localStorage.getItem('ay_phone') || '054-4847078');
+  const [heroTitle, setHeroTitle] = useState(() => localStorage.getItem('ay_hero_title') || 'היהלומים הנדירים של בורסת היהלומים');
+  const [heroSubTitle, setHeroSubTitle] = useState(() => localStorage.getItem('ay_hero_subtitle') || 'חוויית בוטיק יוקרתית בחדר העסקאות בבניין שמשון. רכישת יהלומים מלוטשים ותכשיטים בעיצוב אישי, ללא פערי תיווך, בדירוג הבינלאומי המוביל GIA / IGI.');
+  const [aboutText, setAboutText] = useState(() => localStorage.getItem('ay_about_text') || 'אנו מתמחים בייצור תכשיטי עילית בעיצוב אישי וברכישת יהלומים טבעיים ויהלומי מעבדה ישירות מחברי בורסת היהלומים ברמת גן, ללא פערי תיווך וללא עמלות מיותרות.');
+  const [marqueeText, setMarqueeText] = useState(() => localStorage.getItem('ay_marquee_text') || DEFAULT_MARQUEE_TEXT);
+
+  // Dynamic Carousel Slides
+  const [carouselSlides, setCarouselSlides] = useState<CarouselSlide[]>(() => {
+    const saved = localStorage.getItem('ay_carousel_slides');
+    return saved ? JSON.parse(saved) : DEFAULT_CAROUSEL_SLIDES;
+  });
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
 
+  // Carousel Auto Switcher
   useEffect(() => {
+    if (carouselSlides.length === 0) return;
     const timer = setInterval(() => {
-      setCurrentHeroIndex((prevIndex) => (prevIndex + 1) % HERO_SLIDES.length);
+      setCurrentHeroIndex((prev) => (prev + 1) % carouselSlides.length);
     }, 3500);
-
     return () => clearInterval(timer);
-  }, []);
+  }, [carouselSlides]);
 
-  const [marqueeText, setMarqueeText] = useState<string>(() => {
-    return localStorage.getItem('ay_marquee_text') || DEFAULT_MARQUEE_TEXT;
-  });
-  const [tempMarqueeInput, setTempMarqueeInput] = useState<string>(marqueeText);
-
+  // Products State
   const [products, setProducts] = useState<DiamondProduct[]>(INITIAL_PRODUCTS);
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('all');
   const [selectedShape, setSelectedShape] = useState<string>('all');
@@ -230,9 +251,14 @@ export default function App() {
   const [priceRange, setPriceRange] = useState<number>(100000);
   const [minCarat, setMinCarat] = useState<number>(0.3);
 
+  // Responsive Drawers
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
+  // Admin Dashboard Tabs: 'products' | 'carousel' | 'content' | 'settings'
+  const [adminTab, setAdminTab] = useState<'products' | 'carousel' | 'content' | 'settings'>('products');
+
+  // Admin Auth States
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [authStep, setAuthStep] = useState<'credentials' | 'enroll_qr' | 'verify_code'>('credentials');
   const [emailInput, setEmailInput] = useState('');
@@ -243,6 +269,7 @@ export default function App() {
   const [loginError, setLoginError] = useState('');
   const [isLoadingAuth, setIsLoadingAuth] = useState(false);
 
+  // Product Editing/Adding States
   const [editingProduct, setEditingProduct] = useState<DiamondProduct | null>(null);
   const [uploadedImagePreview, setUploadedImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -261,6 +288,15 @@ export default function App() {
     certificate: 'GIA',
     status: 'available' as const
   });
+
+  // Carousel Slide Add/Edit State
+  const [newSlide, setNewSlide] = useState({
+    title: '',
+    tag: '',
+    image: ''
+  });
+  const [newSlideImagePreview, setNewSlideImagePreview] = useState<string | null>(null);
+  const slideFileInputRef = useRef<HTMLInputElement>(null);
 
   const navigateTo = (route: 'home' | 'shop' | 'about' | 'contactus' | 'admin', category?: ProductCategory) => {
     setCurrentRoute(route);
@@ -294,6 +330,7 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePop);
   }, []);
 
+  // Fetch products from Supabase
   useEffect(() => {
     fetchProducts();
   }, []);
@@ -313,6 +350,7 @@ export default function App() {
     }
   };
 
+  // Auth Session
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -442,13 +480,65 @@ export default function App() {
     setVerifyCode('');
   };
 
-  const handleSaveMarquee = (e: React.FormEvent) => {
+  // Carousel Handlers
+  const handleAddSlide = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMarqueeText(tempMarqueeInput);
-    localStorage.setItem('ay_marquee_text', tempMarqueeInput);
-    alert('הטקסט הרץ עודכן בהצלחה!');
+    if (!newSlide.title || !newSlide.tag) {
+      alert('נא למלא כותרת ותגית לשקופית');
+      return;
+    }
+
+    let slideImageUrl = '/images/ring-round-solitaire.webp';
+
+    if (slideFileInputRef.current?.files?.[0]) {
+      const file = slideFileInputRef.current.files[0];
+      const fileExt = file.name.split('.').pop();
+      const fileName = `slide_${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(fileName, file);
+
+      if (!uploadError) {
+        const { data } = supabase.storage
+          .from('product-images')
+          .getPublicUrl(fileName);
+        slideImageUrl = data.publicUrl;
+      }
+    } else if (newSlide.image) {
+      slideImageUrl = newSlide.image;
+    }
+
+    const updatedSlides: CarouselSlide[] = [
+      ...carouselSlides,
+      {
+        id: Date.now().toString(),
+        title: newSlide.title,
+        tag: newSlide.tag,
+        image: slideImageUrl
+      }
+    ];
+
+    setCarouselSlides(updatedSlides);
+    localStorage.setItem('ay_carousel_slides', JSON.stringify(updatedSlides));
+    setNewSlide({ title: '', tag: '', image: '' });
+    setNewSlideImagePreview(null);
+    if (slideFileInputRef.current) slideFileInputRef.current.value = '';
+    alert('שקופית חדשה נוספה בהצלחה לקרוסלה!');
   };
 
+  const handleDeleteSlide = (id: string) => {
+    if (carouselSlides.length <= 1) {
+      alert('חייבת להישאר לפחות שקופית אחת בקרוסלה.');
+      return;
+    }
+    if (!window.confirm('האם להסיר שקופית זו מהקרוסלה?')) return;
+    const updated = carouselSlides.filter(s => s.id !== id);
+    setCarouselSlides(updated);
+    localStorage.setItem('ay_carousel_slides', JSON.stringify(updated));
+  };
+
+  // Product Add / Update Handlers
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProduct.title || !newProduct.price) {
@@ -461,7 +551,7 @@ export default function App() {
     if (fileInputRef.current?.files?.[0]) {
       const file = fileInputRef.current.files[0];
       const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
+      const fileName = `product_${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('product-images')
@@ -513,7 +603,7 @@ export default function App() {
       });
       setUploadedImagePreview(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
-      alert('הפריט נוסף בהצלחה לקולקציה!');
+      alert('התכשיט נוסף בהצלחה לקולקציה!');
     }
   };
 
@@ -560,7 +650,6 @@ export default function App() {
         .eq('id', editingProduct.id);
 
       if (error) {
-        console.error('Update error:', error);
         alert(`שגיאה בעדכון הפריט: ${error.message}`);
       } else {
         setProducts(prev => prev.map(p => p.id === editingProduct.id ? { ...editingProduct, image: imageUrl } : p));
@@ -593,6 +682,7 @@ export default function App() {
     }
   };
 
+  // Filtered Products
   const filteredProducts = products.filter(product => {
     const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
     const matchesShape = selectedShape === 'all' || product.shape === selectedShape;
@@ -605,6 +695,9 @@ export default function App() {
                           product.shape.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesShape && matchesType && matchesColor && matchesClarity && matchesCarat && matchesPrice && matchesSearch;
   });
+
+  const cleanPhone = phoneText.replace(/[^0-9]/g, '');
+  const dynamicWhatsappLink = `https://wa.me/972${cleanPhone.startsWith('0') ? cleanPhone.slice(1) : cleanPhone}?text=${encodeURIComponent('שלום אריק, הגעתי דרך האתר ואשמח לייעוץ בנוגע לטבעות ויהלומים בעיצוב אישי.')}`;
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-[#1F1C18] font-sans flex flex-col antialiased overflow-x-hidden selection:bg-[#B39359] selection:text-white" dir="rtl">
@@ -729,11 +822,11 @@ export default function App() {
           {/* VIP BOOKING BUTTON & MOBILE MENU */}
           <div className="flex items-center gap-3">
             <a
-              href={`tel:${PHONE_NUMBER}`}
+              href={`tel:${cleanPhone}`}
               className="hidden sm:flex items-center gap-2.5 bg-[#141210] text-[#D8C7B0] border border-[#B39359]/40 px-5 py-2.5 rounded-full text-xs font-semibold tracking-wider hover:bg-[#201D19] transition-all shadow-xs"
             >
               <Phone className="w-3.5 h-3.5 text-[#B39359]" />
-              <span>{DISPLAY_PHONE}</span>
+              <span>{phoneText}</span>
             </a>
 
             <button
@@ -807,13 +900,13 @@ export default function App() {
 
             <div className="border-t border-[#EAE3D6] pt-4">
               <a
-                href={WHATSAPP_LINK}
+                href={dynamicWhatsappLink}
                 target="_blank"
                 rel="noreferrer"
                 className="w-full py-3 bg-[#141210] text-[#D8C7B0] border border-[#B39359]/30 rounded-xl text-xs font-semibold flex items-center justify-center gap-2"
               >
                 <Phone className="w-4 h-4 text-[#B39359]" />
-                <span>וואטסאפ: {DISPLAY_PHONE}</span>
+                <span>וואטסאפ: {phoneText}</span>
               </a>
             </div>
           </div>
@@ -835,10 +928,10 @@ export default function App() {
                   <span>ייצור תכשיטים בעיצוב אישי | Lab & Natural Diamonds</span>
                 </div>
                 <h1 className="text-3xl sm:text-5xl lg:text-6xl font-serif font-bold leading-tight tracking-wide text-[#FAF8F5]">
-                  היהלומים הנדירים של בורסת היהלומים
+                  {heroTitle}
                 </h1>
                 <p className="text-xs sm:text-base text-[#D8C7B0]/90 max-w-xl leading-relaxed font-light">
-                  חוויית בוטיק יוקרתית בחדר העסקאות בבניין שמשון. רכישת יהלומים מלוטשים ותכשיטים בעיצוב אישי, ללא פערי תיווך, בדירוג הבינלאומי המוביל GIA / IGI.
+                  {heroSubTitle}
                 </p>
                 <div className="flex flex-wrap gap-4 pt-4">
                   <button
@@ -860,9 +953,9 @@ export default function App() {
               <div className="lg:col-span-5 relative z-10 flex justify-center">
                 <div className="w-full max-w-md aspect-4/5 rounded-3xl overflow-hidden border border-[#B39359]/30 shadow-2xl relative group bg-[#1A1815]">
                   
-                  {HERO_SLIDES.map((slide, idx) => (
+                  {carouselSlides.map((slide, idx) => (
                     <div 
-                      key={slide.image}
+                      key={slide.id}
                       className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${
                         idx === currentHeroIndex ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
                       }`}
@@ -883,7 +976,7 @@ export default function App() {
 
                   {/* Slide Indicator Dots */}
                   <div className="absolute bottom-4 left-6 z-20 flex gap-1.5">
-                    {HERO_SLIDES.map((_, dotIdx) => (
+                    {carouselSlides.map((_, dotIdx) => (
                       <span 
                         key={dotIdx}
                         className={`h-1.5 rounded-full transition-all duration-500 ${
@@ -1254,7 +1347,7 @@ export default function App() {
 
                 <div className="space-y-3 pt-2">
                   <a
-                    href={`https://wa.me/972544847078?text=${encodeURIComponent(`שלום אריק, אני מעוניין לתאם פגישה ומדידה בבורסה עבור: ${selectedProductView.title}`)}`}
+                    href={`https://wa.me/972${cleanPhone.startsWith('0') ? cleanPhone.slice(1) : cleanPhone}?text=${encodeURIComponent(`שלום אריק, אני מעוניין לתאם פגישה ומדידה בבורסה עבור: ${selectedProductView.title}`)}`}
                     target="_blank"
                     rel="noreferrer"
                     className="w-full py-4 bg-[#141210] text-[#D8C7B0] border border-[#B39359]/40 rounded-full font-semibold text-xs tracking-wider uppercase flex items-center justify-center gap-2 hover:bg-[#201D19] transition-all shadow-md"
@@ -1264,11 +1357,11 @@ export default function App() {
                   </a>
 
                   <a
-                    href={`tel:${PHONE_NUMBER}`}
+                    href={`tel:${cleanPhone}`}
                     className="w-full py-3 bg-[#FAF8F5] border border-[#EAE3D6] text-[#141210] rounded-full font-semibold text-xs flex items-center justify-center gap-2 hover:bg-[#F5F0E6] transition-colors"
                   >
                     <Phone className="w-4 h-4 text-[#B39359]" />
-                    <span>שיחה ישירה עם אריק: {DISPLAY_PHONE}</span>
+                    <span>שיחה ישירה עם אריק: {phoneText}</span>
                   </a>
                 </div>
               </div>
@@ -1292,7 +1385,7 @@ export default function App() {
               ברוכים הבאים לעולם היהלומים ותכשיטי היוקרה של אריק יעקובוב.
             </p>
             <p>
-              אנו מתמחים בייצור תכשיטי עילית בעיצוב אישי וברכישת יהלומים טבעיים ויהלומי מעבדה (Lab & Natural Diamonds) ישירות מחברי בורסת היהלומים ברמת גן, ללא פערי תיווך וללא עמלות מיותרות.
+              {aboutText}
             </p>
             <p>
               חדר העסקאות הפרטי שלנו ממוקם בבניין שמשון בבורסת היהלומים ברמת גן, ומציע חוויית קנייה בוטיקית וליווי אישי מקצועי לכל אורך הדרך – מבחירת האבן הגולמית בדירוג הבינלאומי המחמיר (GIA, IGI) ועד לעיצוב והרכבת טבעת האירוסין או תכשיט החלומות שלך.
@@ -1300,10 +1393,10 @@ export default function App() {
             <div className="pt-6 border-t border-[#EAE3D6] flex flex-col sm:flex-row items-center justify-between gap-4">
               <div>
                 <span className="font-bold text-[#141210] block">פגישות אישיות ותיאום מראש:</span>
-                <span className="text-xs text-[#8F8171]">טלפון / וואטסאפ: {DISPLAY_PHONE}</span>
+                <span className="text-xs text-[#8F8171]">טלפון / וואטסאפ: {phoneText}</span>
               </div>
               <a
-                href={WHATSAPP_LINK}
+                href={dynamicWhatsappLink}
                 target="_blank"
                 rel="noreferrer"
                 className="w-full sm:w-auto px-8 py-3.5 bg-[#141210] text-[#D8C7B0] border border-[#B39359]/40 rounded-full text-xs font-semibold hover:bg-[#201D19]"
@@ -1321,7 +1414,7 @@ export default function App() {
           <div className="text-center space-y-3">
             <span className="text-xs font-mono text-[#B39359] tracking-widest uppercase">פגישות וייעוץ אישי</span>
             <h1 className="text-3xl sm:text-5xl font-serif font-bold text-[#141210]">חדר העסקאות בבורסת היהלומים</h1>
-            <p className="text-xs sm:text-sm text-[#8F8171]">בניין שמשון, בורסת היהלומים רמת גן</p>
+            <p className="text-xs sm:text-sm text-[#8F8171]">בניין שמשון, בבורסת היהלומים רמת גן</p>
             <div className="w-12 h-0.5 bg-[#B39359] mx-auto mt-2" />
           </div>
 
@@ -1342,7 +1435,7 @@ export default function App() {
                   <Phone className="w-5 h-5 text-[#B39359] shrink-0" />
                   <div>
                     <span className="font-bold text-[#141210] block">טלפון ישיר:</span>
-                    <a href={`tel:${PHONE_NUMBER}`} className="hover:underline font-semibold">{DISPLAY_PHONE}</a>
+                    <a href={`tel:${cleanPhone}`} className="hover:underline font-semibold">{phoneText}</a>
                   </div>
                 </div>
 
@@ -1356,7 +1449,7 @@ export default function App() {
               </div>
 
               <a
-                href={WHATSAPP_LINK}
+                href={dynamicWhatsappLink}
                 target="_blank"
                 rel="noreferrer"
                 className="w-full py-4 bg-[#141210] text-[#D8C7B0] border border-[#B39359]/40 rounded-full font-semibold text-xs flex items-center justify-center gap-2 hover:bg-[#201D19]"
@@ -1394,7 +1487,7 @@ export default function App() {
         </main>
       )}
 
-      {/* ADMIN PANEL */}
+      {/* 5. ULTIMATE ADMIN DASHBOARD (ORGANIZED CATEGORY TABS) */}
       {currentRoute === 'admin' && (
         <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-8 py-10 w-full text-right">
           {!isAdminAuthenticated ? (
@@ -1525,331 +1618,601 @@ export default function App() {
           ) : (
             <div className="space-y-8">
 
-              {/* TICKER TEXT EDITOR */}
-              <div className="bg-white p-6 rounded-3xl border border-[#EAE3D6] shadow-xs space-y-4">
-                <div className="flex items-center gap-2 border-b border-[#EAE3D6] pb-3">
-                  <Sparkles className="w-4 h-4 text-[#B39359]" />
-                  <h3 className="font-serif font-bold text-base text-[#141210]">עריכת הטקסט הרץ בראש האתר (Ticker)</h3>
-                </div>
-                <form onSubmit={handleSaveMarquee} className="flex flex-col sm:flex-row gap-3">
-                  <input
-                    type="text"
-                    required
-                    value={tempMarqueeInput}
-                    onChange={(e) => setTempMarqueeInput(e.target.value)}
-                    className="flex-1 px-4 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6] text-xs"
-                  />
-                  <button
-                    type="submit"
-                    className="px-6 py-2.5 bg-[#141210] text-[#D8C7B0] rounded-xl text-xs font-semibold hover:bg-[#201D19] flex items-center justify-center gap-1.5 shrink-0"
-                  >
-                    <Save className="w-3.5 h-3.5 text-[#B39359]" />
-                    <span>עדכן טקסט רץ</span>
-                  </button>
-                </form>
-              </div>
-
-              {/* ACTION BAR */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-[#EAE3D6] shadow-xs">
+              {/* ADMIN TOP CONTROL BAR */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#141210] p-6 rounded-3xl border border-[#282420] text-white shadow-xl">
                 <div>
-                  <h1 className="text-xl sm:text-2xl font-serif font-bold text-[#141210]">ניהול מלאי יהלומים - Arik Diamonds</h1>
-                  <p className="text-xs text-[#8F8171] mt-0.5">סנכרון מלא מול מסד הנתונים Supabase</p>
+                  <span className="text-[11px] font-mono text-[#B39359] tracking-widest uppercase">CONTROL CENTER</span>
+                  <h1 className="text-xl sm:text-2xl font-serif font-bold text-white mt-0.5">דשבורד ניהול תוכן - Arik Yakobov</h1>
                 </div>
                 <div className="flex items-center gap-3">
                   <button
                     onClick={fetchProducts}
-                    className="p-2.5 rounded-xl border border-[#EAE3D6] bg-[#FAF8F5] hover:bg-[#EAE3D6] transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
+                    className="p-2.5 px-4 rounded-full border border-[#B39359]/30 bg-[#201D19] hover:bg-[#2A2621] text-[#D8C7B0] transition-colors flex items-center gap-2 text-xs font-semibold"
                   >
-                    <RefreshCw className="w-4 h-4 text-[#B39359]" />
-                    <span>רענן</span>
+                    <RefreshCw className="w-3.5 h-3.5 text-[#B39359]" />
+                    <span>רענן נתונים</span>
                   </button>
                   <button
                     onClick={handleLogout}
-                    className="p-2.5 px-4 rounded-xl bg-[#141210] text-[#D8C7B0] hover:bg-[#201D19] transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
+                    className="p-2.5 px-5 rounded-full bg-[#B39359] text-[#141210] hover:bg-[#a18349] transition-colors flex items-center gap-2 text-xs font-bold"
                   >
-                    <LogOut className="w-4 h-4 text-[#B39359]" />
+                    <LogOut className="w-3.5 h-3.5" />
                     <span>התנתק</span>
                   </button>
                 </div>
               </div>
 
-              {/* ADD PRODUCT FORM */}
-              <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EAE3D6] shadow-xs space-y-6">
-                <div className="flex items-center gap-2 border-b border-[#EAE3D6] pb-4">
-                  <Plus className="w-5 h-5 text-[#B39359]" />
-                  <h2 className="font-serif font-bold text-lg text-[#141210]">הוספת פריט חדש לקולקציה</h2>
-                </div>
+              {/* DASHBOARD TABS NAVIGATION */}
+              <div className="flex flex-wrap gap-2 border-b border-[#EAE3D6] pb-4">
+                <button
+                  onClick={() => setAdminTab('products')}
+                  className={`px-5 py-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
+                    adminTab === 'products'
+                      ? 'bg-[#141210] text-[#B39359] shadow-md'
+                      : 'bg-white text-[#544B41] border border-[#EAE3D6] hover:bg-[#FAF8F5]'
+                  }`}
+                >
+                  <Diamond className="w-4 h-4" />
+                  <span>ניהול מלאי ומוצרים ({products.length})</span>
+                </button>
 
-                <form onSubmit={handleAddProduct} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
-                  <div className="sm:col-span-2">
-                    <label className="block mb-1 font-semibold text-[#544B41]">כותרת ושם הפריט *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="טבעת סוליטר בשיבוץ יהלום מרקיזה 1.80 קראט"
-                      value={newProduct.title}
-                      onChange={e => setNewProduct({ ...newProduct, title: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
-                    />
-                  </div>
+                <button
+                  onClick={() => setAdminTab('carousel')}
+                  className={`px-5 py-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
+                    adminTab === 'carousel'
+                      ? 'bg-[#141210] text-[#B39359] shadow-md'
+                      : 'bg-white text-[#544B41] border border-[#EAE3D6] hover:bg-[#FAF8F5]'
+                  }`}
+                >
+                  <ImageIcon className="w-4 h-4" />
+                  <span>סליידר דף הבית ({carouselSlides.length})</span>
+                </button>
 
-                  <div>
-                    <label className="block mb-1 font-semibold text-[#544B41]">מחיר (₪) *</label>
-                    <input
-                      type="number"
-                      required
-                      placeholder="35000"
-                      value={newProduct.price}
-                      onChange={e => setNewProduct({ ...newProduct, price: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
-                    />
-                  </div>
+                <button
+                  onClick={() => setAdminTab('content')}
+                  className={`px-5 py-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
+                    adminTab === 'content'
+                      ? 'bg-[#141210] text-[#B39359] shadow-md'
+                      : 'bg-white text-[#544B41] border border-[#EAE3D6] hover:bg-[#FAF8F5]'
+                  }`}
+                >
+                  <FileText className="w-4 h-4" />
+                  <span>תוכן, טקסטים ו-Ticker</span>
+                </button>
 
-                  <div>
-                    <label className="block mb-1 font-semibold text-[#544B41]">קטגוריה</label>
-                    <select
-                      value={newProduct.category}
-                      onChange={e => setNewProduct({ ...newProduct, category: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
-                    >
-                      <option value="engagement">טבעות אירוסין</option>
-                      <option value="loose">יהלומים משוחררים</option>
-                      <option value="tennis">צמידי טניס</option>
-                      <option value="earrings">עגילי יהלומים</option>
-                      <option value="high_jewelry">תכשיטי יוקרה בעיצוב אישי</option>
-                    </select>
-                  </div>
+                <button
+                  onClick={() => setAdminTab('settings')}
+                  className={`px-5 py-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
+                    adminTab === 'settings'
+                      ? 'bg-[#141210] text-[#B39359] shadow-md'
+                      : 'bg-white text-[#544B41] border border-[#EAE3D6] hover:bg-[#FAF8F5]'
+                  }`}
+                >
+                  <Settings className="w-4 h-4" />
+                  <span>טלפון ופרטי קשר</span>
+                </button>
+              </div>
 
-                  <div>
-                    <label className="block mb-1 font-semibold text-[#544B41]">סוג יהלום</label>
-                    <select
-                      value={newProduct.diamond_type}
-                      onChange={e => setNewProduct({ ...newProduct, diamond_type: e.target.value as any })}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
-                    >
-                      <option value="Natural">טבעי (Natural)</option>
-                      <option value="Lab">מעבדה (Lab)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block mb-1 font-semibold text-[#544B41]">צורת חיתוך (בעברית)</label>
-                    <select
-                      value={newProduct.shape}
-                      onChange={e => setNewProduct({ ...newProduct, shape: e.target.value as DiamondShape })}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
-                    >
-                      {SHAPES_DATA.map(s => (
-                        <option key={s.value} value={s.value}>
-                          {s.labelHe} ({s.labelEn})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block mb-1 font-semibold text-[#544B41]">משקל קראט</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="1.50"
-                      value={newProduct.carat}
-                      onChange={e => setNewProduct({ ...newProduct, carat: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block mb-1 font-semibold text-[#544B41]">צבע (Color)</label>
-                    <input
-                      type="text"
-                      placeholder="D / E / F"
-                      value={newProduct.color}
-                      onChange={e => setNewProduct({ ...newProduct, color: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block mb-1 font-semibold text-[#544B41]">ניקיון (Clarity)</label>
-                    <input
-                      type="text"
-                      placeholder="VVS1 / VS1"
-                      value={newProduct.clarity}
-                      onChange={e => setNewProduct({ ...newProduct, clarity: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block mb-1 font-semibold text-[#544B41]">רמת חיתוך (Cut)</label>
-                    <input
-                      type="text"
-                      placeholder="Excellent"
-                      value={newProduct.cut}
-                      onChange={e => setNewProduct({ ...newProduct, cut: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block mb-1 font-semibold text-[#544B41]">תעודה גמולוגית</label>
-                    <input
-                      type="text"
-                      placeholder="GIA / IGI"
-                      value={newProduct.certificate}
-                      onChange={e => setNewProduct({ ...newProduct, certificate: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block mb-1 font-semibold text-[#544B41]">סטטוס פריט</label>
-                    <select
-                      value={newProduct.status}
-                      onChange={e => setNewProduct({ ...newProduct, status: e.target.value as any })}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
-                    >
-                      <option value="available">זמין בגלריה</option>
-                      <option value="reserved">שמור ללקוח</option>
-                      <option value="sold">נמכר</option>
-                    </select>
-                  </div>
-
-                  <div className="sm:col-span-2 lg:col-span-3 p-4 rounded-2xl bg-[#FAF8F5] border border-dashed border-[#EAE3D6] flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        ref={fileInputRef}
-                        onChange={(e) => {
-                          if (e.target.files?.[0]) {
-                            setUploadedImagePreview(URL.createObjectURL(e.target.files[0]));
-                          }
-                        }}
-                        className="hidden"
-                        id="new-product-image-upload"
-                      />
-                      <label
-                        htmlFor="new-product-image-upload"
-                        className="px-4 py-2 bg-[#141210] text-[#D8C7B0] rounded-xl text-xs font-semibold cursor-pointer hover:bg-[#201D19]"
-                      >
-                        בחר קובץ תמונה מהמכשיר
-                      </label>
-                      <span className="text-[11px] text-[#8F8171]">JPG, PNG, WEBP באיכות גבוהה</span>
+              {/* TAB 1: PRODUCTS MANAGER */}
+              {adminTab === 'products' && (
+                <div className="space-y-8 animate-in fade-in duration-150">
+                  
+                  {/* ADD PRODUCT */}
+                  <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EAE3D6] shadow-xs space-y-6">
+                    <div className="flex items-center gap-2 border-b border-[#EAE3D6] pb-4">
+                      <Plus className="w-5 h-5 text-[#B39359]" />
+                      <h2 className="font-serif font-bold text-lg text-[#141210]">הוספת פריט חדש לקולקציה</h2>
                     </div>
 
-                    {uploadedImagePreview && (
-                      <div className="flex items-center gap-2">
-                        <img src={uploadedImagePreview} alt="Preview" className="w-12 h-12 rounded-lg object-cover border border-[#EAE3D6]" />
-                        <span className="text-[11px] text-[#B39359] font-semibold">תמונה נבחרה בהצלחה</span>
+                    <form onSubmit={handleAddProduct} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                      <div className="sm:col-span-2">
+                        <label className="block mb-1 font-semibold text-[#544B41]">כותרת ושם הפריט *</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="טבעת סוליטר בשיבוץ יהלום מרקיזה 1.80 קראט"
+                          value={newProduct.title}
+                          onChange={e => setNewProduct({ ...newProduct, title: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        />
                       </div>
-                    )}
+
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">מחיר (₪) *</label>
+                        <input
+                          type="number"
+                          required
+                          placeholder="35000"
+                          value={newProduct.price}
+                          onChange={e => setNewProduct({ ...newProduct, price: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">קטגוריה</label>
+                        <select
+                          value={newProduct.category}
+                          onChange={e => setNewProduct({ ...newProduct, category: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        >
+                          <option value="engagement">טבעות אירוסין</option>
+                          <option value="loose">יהלומים משוחררים</option>
+                          <option value="tennis">צמידי טניס</option>
+                          <option value="earrings">עגילי יהלומים</option>
+                          <option value="high_jewelry">תכשיטי יוקרה בעיצוב אישי</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">סוג יהלום</label>
+                        <select
+                          value={newProduct.diamond_type}
+                          onChange={e => setNewProduct({ ...newProduct, diamond_type: e.target.value as any })}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        >
+                          <option value="Natural">טבעי (Natural)</option>
+                          <option value="Lab">מעבדה (Lab)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">צורת חיתוך (בעברית)</label>
+                        <select
+                          value={newProduct.shape}
+                          onChange={e => setNewProduct({ ...newProduct, shape: e.target.value as DiamondShape })}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        >
+                          {SHAPES_DATA.map(s => (
+                            <option key={s.value} value={s.value}>
+                              {s.labelHe} ({s.labelEn})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">משקל קראט</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          placeholder="1.50"
+                          value={newProduct.carat}
+                          onChange={e => setNewProduct({ ...newProduct, carat: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">צבע (Color)</label>
+                        <input
+                          type="text"
+                          placeholder="D / E / F"
+                          value={newProduct.color}
+                          onChange={e => setNewProduct({ ...newProduct, color: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">ניקיון (Clarity)</label>
+                        <input
+                          type="text"
+                          placeholder="VVS1 / VS1"
+                          value={newProduct.clarity}
+                          onChange={e => setNewProduct({ ...newProduct, clarity: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">רמת חיתוך (Cut)</label>
+                        <input
+                          type="text"
+                          placeholder="Excellent"
+                          value={newProduct.cut}
+                          onChange={e => setNewProduct({ ...newProduct, cut: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">תעודה גמולוגית</label>
+                        <input
+                          type="text"
+                          placeholder="GIA / IGI"
+                          value={newProduct.certificate}
+                          onChange={e => setNewProduct({ ...newProduct, certificate: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">סטטוס פריט</label>
+                        <select
+                          value={newProduct.status}
+                          onChange={e => setNewProduct({ ...newProduct, status: e.target.value as any })}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        >
+                          <option value="available">זמין בגלריה</option>
+                          <option value="reserved">שמור ללקוח</option>
+                          <option value="sold">נמכר</option>
+                        </select>
+                      </div>
+
+                      <div className="sm:col-span-2 lg:col-span-3 p-4 rounded-2xl bg-[#FAF8F5] border border-dashed border-[#EAE3D6] flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            ref={fileInputRef}
+                            onChange={(e) => {
+                              if (e.target.files?.[0]) {
+                                setUploadedImagePreview(URL.createObjectURL(e.target.files[0]));
+                              }
+                            }}
+                            className="hidden"
+                            id="new-product-image-upload"
+                          />
+                          <label
+                            htmlFor="new-product-image-upload"
+                            className="px-4 py-2 bg-[#141210] text-[#D8C7B0] rounded-xl text-xs font-semibold cursor-pointer hover:bg-[#201D19]"
+                          >
+                            בחר קובץ תמונה מהמכשיר
+                          </label>
+                          <span className="text-[11px] text-[#8F8171]">JPG, PNG, WEBP באיכות גבוהה</span>
+                        </div>
+
+                        {uploadedImagePreview && (
+                          <div className="flex items-center gap-2">
+                            <img src={uploadedImagePreview} alt="Preview" className="w-12 h-12 rounded-lg object-cover border border-[#EAE3D6]" />
+                            <span className="text-[11px] text-[#B39359] font-semibold">תמונה נבחרה בהצלחה</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="sm:col-span-2 lg:col-span-3 flex justify-end">
+                        <button
+                          type="submit"
+                          className="w-full sm:w-auto px-8 py-3 bg-[#141210] text-[#D8C7B0] rounded-xl font-semibold text-xs tracking-wider uppercase hover:bg-[#201D19] shadow-xs cursor-pointer"
+                        >
+                          שמור פריט ב-Supabase
+                        </button>
+                      </div>
+                    </form>
                   </div>
 
-                  <div className="sm:col-span-2 lg:col-span-3 flex justify-end">
-                    <button
-                      type="submit"
-                      className="w-full sm:w-auto px-8 py-3 bg-[#141210] text-[#D8C7B0] rounded-xl font-semibold text-xs tracking-wider uppercase hover:bg-[#201D19] shadow-xs cursor-pointer"
-                    >
-                      שמור פריט ב-Supabase
-                    </button>
-                  </div>
-                </form>
-              </div>
+                  {/* PRODUCTS TABLE */}
+                  <div className="bg-white rounded-3xl border border-[#EAE3D6] shadow-xs overflow-hidden">
+                    <div className="p-6 border-b border-[#EAE3D6] flex justify-between items-center">
+                      <h3 className="font-serif font-bold text-base text-[#141210]">
+                        פריטים פעילים בקולקציה ({products.length})
+                      </h3>
+                    </div>
 
-              {/* TABLE */}
-              <div className="bg-white rounded-3xl border border-[#EAE3D6] shadow-xs overflow-hidden">
-                <div className="p-6 border-b border-[#EAE3D6] flex justify-between items-center">
-                  <h3 className="font-serif font-bold text-base text-[#141210]">
-                    פריטים פעילים בקולקציה ({products.length})
-                  </h3>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-right text-xs">
-                    <thead className="bg-[#FAF8F5] text-[#8F8171] border-b border-[#EAE3D6]">
-                      <tr>
-                        <th className="py-3.5 px-4 font-semibold">תמונה</th>
-                        <th className="py-3.5 px-4 font-semibold">כותרת</th>
-                        <th className="py-3.5 px-4 font-semibold">סוג</th>
-                        <th className="py-3.5 px-4 font-semibold">חיתוך</th>
-                        <th className="py-3.5 px-4 font-semibold">קראט</th>
-                        <th className="py-3.5 px-4 font-semibold">צבע/ניקיון</th>
-                        <th className="py-3.5 px-4 font-semibold">מחיר</th>
-                        <th className="py-3.5 px-4 font-semibold">סטטוס</th>
-                        <th className="py-3.5 px-4 font-semibold text-center">פעולות</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#EAE3D6]">
-                      {products.map(p => {
-                        const shapeObj = SHAPES_DATA.find(s => s.value === p.shape);
-                        return (
-                          <tr key={p.id} className="hover:bg-[#FAF8F5]/80 transition-colors">
-                            <td className="py-3 px-4">
-                              <img src={p.image} alt={p.title} className="w-12 h-12 object-cover rounded-lg border border-[#EAE3D6]" />
-                            </td>
-                            <td className="py-3 px-4 font-medium max-w-xs truncate">{p.title}</td>
-                            <td className="py-3 px-4">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${p.diamond_type === 'Lab' ? 'bg-amber-50 text-amber-700' : 'bg-neutral-100 text-neutral-800'}`}>
-                                {p.diamond_type === 'Lab' ? 'מעבדה' : 'טבעי'}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 font-medium text-[#B39359]">
-                              {shapeObj ? shapeObj.labelHe : p.shape}
-                            </td>
-                            <td className="py-3 px-4">{p.carat} ct</td>
-                            <td className="py-3 px-4">{p.color} / {p.clarity}</td>
-                            <td className="py-3 px-4 font-bold text-[#141210]">₪{p.price.toLocaleString()}</td>
-                            <td className="py-3 px-4">
-                              <select
-                                value={p.status}
-                                onChange={(e) => handleStatusChange(p.id, e.target.value as any)}
-                                className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border ${
-                                  p.status === 'available'
-                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                    : p.status === 'reserved'
-                                    ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                    : 'bg-rose-50 text-rose-700 border-rose-200'
-                                }`}
-                              >
-                                <option value="available">זמין</option>
-                                <option value="reserved">שמור</option>
-                                <option value="sold">נמכר</option>
-                              </select>
-                            </td>
-                            <td className="py-3 px-4 text-center">
-                              <div className="flex items-center justify-center gap-1.5">
-                                <button
-                                  onClick={() => {
-                                    setEditingProduct(p);
-                                    setUploadedImagePreview(p.image);
-                                  }}
-                                  className="p-1.5 text-[#B39359] hover:bg-[#F5F0E6] rounded-lg transition-colors cursor-pointer"
-                                  title="ערוך פריט"
-                                >
-                                  <Edit3 className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleDelete(p.id)}
-                                  className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                                  title="מחק פריט"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </td>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-right text-xs">
+                        <thead className="bg-[#FAF8F5] text-[#8F8171] border-b border-[#EAE3D6]">
+                          <tr>
+                            <th className="py-3.5 px-4 font-semibold">תמונה</th>
+                            <th className="py-3.5 px-4 font-semibold">כותרת</th>
+                            <th className="py-3.5 px-4 font-semibold">סוג</th>
+                            <th className="py-3.5 px-4 font-semibold">חיתוך</th>
+                            <th className="py-3.5 px-4 font-semibold">קראט</th>
+                            <th className="py-3.5 px-4 font-semibold">צבע/ניקיון</th>
+                            <th className="py-3.5 px-4 font-semibold">מחיר</th>
+                            <th className="py-3.5 px-4 font-semibold">סטטוס</th>
+                            <th className="py-3.5 px-4 font-semibold text-center">פעולות</th>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                        </thead>
+                        <tbody className="divide-y divide-[#EAE3D6]">
+                          {products.map(p => {
+                            const shapeObj = SHAPES_DATA.find(s => s.value === p.shape);
+                            return (
+                              <tr key={p.id} className="hover:bg-[#FAF8F5]/80 transition-colors">
+                                <td className="py-3 px-4">
+                                  <img src={p.image} alt={p.title} className="w-12 h-12 object-cover rounded-lg border border-[#EAE3D6]" />
+                                </td>
+                                <td className="py-3 px-4 font-medium max-w-xs truncate">{p.title}</td>
+                                <td className="py-3 px-4">
+                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${p.diamond_type === 'Lab' ? 'bg-amber-50 text-amber-700' : 'bg-neutral-100 text-neutral-800'}`}>
+                                    {p.diamond_type === 'Lab' ? 'מעבדה' : 'טבעי'}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4 font-medium text-[#B39359]">
+                                  {shapeObj ? shapeObj.labelHe : p.shape}
+                                </td>
+                                <td className="py-3 px-4">{p.carat} ct</td>
+                                <td className="py-3 px-4">{p.color} / {p.clarity}</td>
+                                <td className="py-3 px-4 font-bold text-[#141210]">₪{p.price.toLocaleString()}</td>
+                                <td className="py-3 px-4">
+                                  <select
+                                    value={p.status}
+                                    onChange={(e) => handleStatusChange(p.id, e.target.value as any)}
+                                    className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border ${
+                                      p.status === 'available'
+                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                        : p.status === 'reserved'
+                                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                        : 'bg-rose-50 text-rose-700 border-rose-200'
+                                    }`}
+                                  >
+                                    <option value="available">זמין</option>
+                                    <option value="reserved">שמור</option>
+                                    <option value="sold">נמכר</option>
+                                  </select>
+                                </td>
+                                <td className="py-3 px-4 text-center">
+                                  <div className="flex items-center justify-center gap-1.5">
+                                    <button
+                                      onClick={() => {
+                                        setEditingProduct(p);
+                                        setUploadedImagePreview(p.image);
+                                      }}
+                                      className="p-1.5 text-[#B39359] hover:bg-[#F5F0E6] rounded-lg transition-colors cursor-pointer"
+                                      title="ערוך פריט"
+                                    >
+                                      <Edit3 className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDelete(p.id)}
+                                      className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                      title="מחק פריט"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* TAB 2: HERO CAROUSEL MANAGER */}
+              {adminTab === 'carousel' && (
+                <div className="space-y-8 animate-in fade-in duration-150">
+                  
+                  {/* ADD NEW SLIDE */}
+                  <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EAE3D6] shadow-xs space-y-6">
+                    <div className="flex items-center gap-2 border-b border-[#EAE3D6] pb-4">
+                      <Plus className="w-5 h-5 text-[#B39359]" />
+                      <h2 className="font-serif font-bold text-lg text-[#141210]">הוספת שקופית חדשה לקרוסלת דף הבית</h2>
+                    </div>
+
+                    <form onSubmit={handleAddSlide} className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">כותרת השקופית *</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="טבעת סוליטר מרקיזה 2.00 קראט"
+                          value={newSlide.title}
+                          onChange={e => setNewSlide({ ...newSlide, title: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">תגית עליונה (Tag) *</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Natural Diamond / עיצוב אישי"
+                          value={newSlide.tag}
+                          onChange={e => setNewSlide({ ...newSlide, tag: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-2 p-4 rounded-2xl bg-[#FAF8F5] border border-dashed border-[#EAE3D6] flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            ref={slideFileInputRef}
+                            onChange={(e) => {
+                              if (e.target.files?.[0]) {
+                                setNewSlideImagePreview(URL.createObjectURL(e.target.files[0]));
+                              }
+                            }}
+                            className="hidden"
+                            id="new-slide-image-upload"
+                          />
+                          <label
+                            htmlFor="new-slide-image-upload"
+                            className="px-4 py-2 bg-[#141210] text-[#D8C7B0] rounded-xl text-xs font-semibold cursor-pointer hover:bg-[#201D19]"
+                          >
+                            בחר תמונה מהמכשיר
+                          </label>
+                          <span className="text-[11px] text-[#8F8171]">או הדבק קישור ישיר למטה</span>
+                        </div>
+
+                        {newSlideImagePreview && (
+                          <div className="flex items-center gap-2">
+                            <img src={newSlideImagePreview} alt="Preview" className="w-12 h-12 rounded-lg object-cover border border-[#EAE3D6]" />
+                            <span className="text-[11px] text-[#B39359] font-semibold">תמונה מוכנה</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <label className="block mb-1 font-semibold text-[#544B41]">קישור לתמונה (URL מתוך תיקיית images או ענן)</label>
+                        <input
+                          type="text"
+                          placeholder="/images/ring-oval-gold.webp"
+                          value={newSlide.image}
+                          onChange={e => setNewSlide({ ...newSlide, image: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-2 flex justify-end">
+                        <button
+                          type="submit"
+                          className="px-8 py-3 bg-[#141210] text-[#D8C7B0] rounded-xl font-semibold text-xs uppercase tracking-wider hover:bg-[#201D19]"
+                        >
+                          הוסף שקופית לקרוסלה
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+
+                  {/* CURRENT SLIDES LIST */}
+                  <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EAE3D6] shadow-xs space-y-6">
+                    <h3 className="font-serif font-bold text-base text-[#141210]">שקופיות פעילות בקרוסלה ({carouselSlides.length})</h3>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {carouselSlides.map((slide, idx) => (
+                        <div key={slide.id} className="p-4 rounded-2xl border border-[#EAE3D6] bg-[#FAF8F5] space-y-3 flex flex-col justify-between">
+                          <div className="space-y-2">
+                            <div className="aspect-square rounded-xl overflow-hidden border border-[#EAE3D6] bg-black relative">
+                              <img src={slide.image} alt={slide.title} className="w-full h-full object-cover" />
+                              <span className="absolute top-2 right-2 px-2.5 py-1 bg-black/70 text-white rounded-full text-[10px] font-mono">
+                                #{idx + 1}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-[#B39359] font-mono block">{slide.tag}</span>
+                              <h4 className="font-bold text-xs text-[#141210]">{slide.title}</h4>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => handleDeleteSlide(slide.id)}
+                            className="w-full py-2 bg-rose-50 text-rose-600 rounded-xl text-xs font-semibold hover:bg-rose-100 transition-colors flex items-center justify-center gap-1.5"
+                          >
+                            <Trash className="w-3.5 h-3.5" />
+                            <span>הסר שקופית זו</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: CONTENT & TEXTS */}
+              {adminTab === 'content' && (
+                <div className="space-y-8 animate-in fade-in duration-150">
+                  <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EAE3D6] shadow-xs space-y-6">
+                    <h3 className="font-serif font-bold text-base text-[#141210]">עריכת טקסטים ותכנים באתר</h3>
+
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      localStorage.setItem('ay_marquee_text', marqueeText);
+                      localStorage.setItem('ay_hero_title', heroTitle);
+                      localStorage.setItem('ay_hero_subtitle', heroSubTitle);
+                      localStorage.setItem('ay_about_text', aboutText);
+                      alert('כל הטקסטים נשמרו ועודכנו בהצלחה באתר!');
+                    }} className="space-y-5 text-xs">
+                      
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">השורה הרצה למעלה (Ticker Marquee)</label>
+                        <input
+                          type="text"
+                          required
+                          value={marqueeText}
+                          onChange={e => setMarqueeText(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">כותרת ראשית בדף הבית (Hero Title)</label>
+                        <input
+                          type="text"
+                          required
+                          value={heroTitle}
+                          onChange={e => setHeroTitle(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">תת-כותרת בדף הבית (Hero Subtitle)</label>
+                        <textarea
+                          rows={3}
+                          required
+                          value={heroSubTitle}
+                          onChange={e => setHeroSubTitle(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">תוכן עמוד "אודות" (About Us)</label>
+                        <textarea
+                          rows={4}
+                          required
+                          value={aboutText}
+                          onChange={e => setAboutText(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        />
+                      </div>
+
+                      <div className="flex justify-end">
+                        <button
+                          type="submit"
+                          className="px-8 py-3 bg-[#141210] text-[#D8C7B0] rounded-xl font-semibold text-xs flex items-center gap-2 hover:bg-[#201D19]"
+                        >
+                          <Save className="w-4 h-4 text-[#B39359]" />
+                          <span>שמור ועדכן את כל הטקסטים באתר</span>
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 4: SETTINGS & CONTACT */}
+              {adminTab === 'settings' && (
+                <div className="space-y-8 animate-in fade-in duration-150">
+                  <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EAE3D6] shadow-xs space-y-6">
+                    <h3 className="font-serif font-bold text-base text-[#141210]">הגדרות טלפון ופרטי קשר</h3>
+
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      localStorage.setItem('ay_phone', phoneText);
+                      alert('מספר הטלפון עודכן בהצלחה בכל האתר!');
+                    }} className="space-y-4 text-xs">
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">מספר טלפון לתצוגה ושיחות</label>
+                        <input
+                          type="text"
+                          required
+                          value={phoneText}
+                          onChange={e => setPhoneText(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        />
+                      </div>
+
+                      <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-[#EAE3D6] text-[#8F8171] space-y-1">
+                        <p>📍 <strong>כתובת הבוטיק:</strong> בורסת היהלומים רמת גן, בניין שמשון</p>
+                        <p>💬 <strong>קישור וואטסאפ:</strong> נוצר אוטומטית לפי המספר שהזנת</p>
+                      </div>
+
+                      <div className="flex justify-end">
+                        <button
+                          type="submit"
+                          className="px-8 py-3 bg-[#141210] text-[#D8C7B0] rounded-xl font-semibold text-xs flex items-center gap-2 hover:bg-[#201D19]"
+                        >
+                          <Save className="w-4 h-4 text-[#B39359]" />
+                          <span>שמור הגדרות</span>
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
-          {/* EDIT MODAL */}
+          {/* EDIT PRODUCT MODAL */}
           {editingProduct && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
               <div className="bg-white border border-[#EAE3D6] rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 relative shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -2090,9 +2453,9 @@ export default function App() {
         </div>
       )}
 
-      {/* 5. OFFICIAL WHATSAPP FLOATING BUTTON */}
+      {/* 6. OFFICIAL WHATSAPP FLOATING BUTTON */}
       <a
-        href={WHATSAPP_LINK}
+        href={dynamicWhatsappLink}
         target="_blank"
         rel="noreferrer"
         className="fixed bottom-6 left-6 z-40 bg-[#25D366] text-white w-14 h-14 rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all duration-300 flex items-center justify-center cursor-pointer hover:bg-[#20ba59]"
@@ -2104,7 +2467,7 @@ export default function App() {
         </svg>
       </a>
 
-      {/* 6. FOOTER */}
+      {/* 7. FOOTER */}
       <footer className="bg-[#141210] text-[#D8C7B0] border-t border-[#282420] mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-16">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10 text-right">
@@ -2129,7 +2492,7 @@ export default function App() {
               </div>
               <div className="flex items-center gap-2 text-[#D8C7B0]/90">
                 <Phone className="w-4 h-4 text-[#B39359]" />
-                <a href={`tel:${PHONE_NUMBER}`} className="hover:underline font-semibold">{DISPLAY_PHONE}</a>
+                <a href={`tel:${cleanPhone}`} className="hover:underline font-semibold">{phoneText}</a>
               </div>
             </div>
 
