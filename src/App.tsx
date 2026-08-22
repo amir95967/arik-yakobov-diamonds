@@ -215,14 +215,12 @@ export default function App() {
   const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(false);
   const [selectedProductView, setSelectedProductView] = useState<DiamondProduct | null>(null);
 
-  // Dynamic Site Settings
   const [phoneText, setPhoneText] = useState('054-4847078');
   const [heroTitle, setHeroTitle] = useState('היהלומים הנדירים של בורסת היהלומים');
   const [heroSubTitle, setHeroSubTitle] = useState('חוויית בוטיק יוקרתית בבניין שמשון. רכישת יהלומים מלוטשים ותכשיטים בעיצוב אישי, ללא פערי תיווך, בדירוג הבינלאומי המוביל GIA / IGI.');
   const [aboutText, setAboutText] = useState('אנו מתמחים בייצור תכשיטי עילית בעיצוב אישי וברכישת יהלומים טבעיים ויהלומי מעבדה ישירות מחברי בורסת היהלומים ברמת גן, ללא פערי תיווך וללא עמלות מיותרות.');
   const [marqueeText, setMarqueeText] = useState(DEFAULT_MARQUEE_TEXT);
 
-  // Dynamic Carousel Slides
   const [carouselSlides, setCarouselSlides] = useState<CarouselSlide[]>(DEFAULT_CAROUSEL_SLIDES);
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
 
@@ -282,7 +280,6 @@ export default function App() {
     }
   };
 
-  // Carousel Auto Switcher
   useEffect(() => {
     if (carouselSlides.length === 0) return;
     const timer = setInterval(() => {
@@ -291,7 +288,6 @@ export default function App() {
     return () => clearInterval(timer);
   }, [carouselSlides]);
 
-  // Products & Filters State
   const [products, setProducts] = useState<DiamondProduct[]>(INITIAL_PRODUCTS);
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('all');
   const [selectedShape, setSelectedShape] = useState<string>('all');
@@ -302,14 +298,11 @@ export default function App() {
   const [priceRange, setPriceRange] = useState<number>(100000);
   const [minCarat, setMinCarat] = useState<number>(0.3);
 
-  // Responsive Drawers
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
-  // Admin Dashboard Tabs
   const [adminTab, setAdminTab] = useState<'products' | 'carousel' | 'content' | 'settings'>('products');
 
-  // Admin Auth States
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [authStep, setAuthStep] = useState<'credentials' | 'enroll_qr' | 'verify_code'>('credentials');
   const [emailInput, setEmailInput] = useState('');
@@ -320,7 +313,6 @@ export default function App() {
   const [loginError, setLoginError] = useState('');
   const [isLoadingAuth, setIsLoadingAuth] = useState(false);
 
-  // Product Editing/Adding States
   const [editingProduct, setEditingProduct] = useState<DiamondProduct | null>(null);
   const [uploadedImagePreview, setUploadedImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -340,7 +332,6 @@ export default function App() {
     status: 'available' as const
   });
 
-  // Carousel Slide Add State
   const [newSlide, setNewSlide] = useState({
     title: '',
     tag: '',
@@ -349,11 +340,11 @@ export default function App() {
   const [newSlideImagePreview, setNewSlideImagePreview] = useState<string | null>(null);
   const slideFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Auto Logout after 15 minutes of inactivity (15 * 60 * 1000 ms)
+  // Auto Logout after 15 minutes of inactivity
   useEffect(() => {
     if (!isAdminAuthenticated) return;
 
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: ReturnType<typeof setTimeout>;
     const INACTIVITY_LIMIT = 15 * 60 * 1000; // 15 Minutes
 
     const resetTimer = () => {
@@ -410,7 +401,6 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePop);
   }, []);
 
-  // Auth Session Check
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -764,7 +754,6 @@ export default function App() {
     }
   };
 
-  // Filtered Products
   const filteredProducts = products.filter(product => {
     const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
     const matchesShape = selectedShape === 'all' || product.shape === selectedShape;
@@ -811,11 +800,10 @@ export default function App() {
         </div>
       </div>
 
-      {/* 2. LUXURY BOUTIQUE HEADER (MOBILE: BURGER ON RIGHT, LOGO ON LEFT) */}
+      {/* 2. LUXURY BOUTIQUE HEADER */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#EAE3D6] transition-all">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 h-20 sm:h-24 flex items-center justify-between">
           
-          {/* RIGHT SIDE ON MOBILE: BURGER BUTTON / DESKTOP: LOGO */}
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsMobileNavOpen(true)}
@@ -843,7 +831,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* DESKTOP NAVIGATION */}
           <nav className="hidden md:flex items-center gap-8 text-xs font-medium tracking-widest uppercase text-[#544B41]">
             <button
               onClick={() => navigateTo('home')}
@@ -911,7 +898,6 @@ export default function App() {
             </button>
           </nav>
 
-          {/* LEFT SIDE ON MOBILE: BRAND LOGO / DESKTOP: VIP BUTTON */}
           <div className="flex items-center gap-3">
             <div 
               onClick={() => navigateTo('home')} 
@@ -1367,7 +1353,7 @@ export default function App() {
 
                         <div className="p-6 pt-0 flex items-center justify-between border-t border-[#FAF8F5] mt-3">
                           <div className="text-right">
-                            <span className="text-[10px] text-[#8F8171] block font-light">מחיר ישיר</span>
+                            <span className="text-[10px] text-[#8F8171] block font-light">מחיר בורסה ישיר</span>
                             <span className="text-lg font-serif font-bold text-[#141210]">
                               ₪{product.price.toLocaleString()}
                             </span>
@@ -1461,7 +1447,7 @@ export default function App() {
                   </div>
                   <div className="flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-[#B39359]" />
-                    <span>מפגש מדידה אישי בבורסת היהלומים (בניין שמשון)</span>
+                    <span>מפגש מדידה אישי בחדר העסקאות בבורסת היהלומים (בניין שמשון)</span>
                   </div>
                 </div>
 
@@ -1534,7 +1520,7 @@ export default function App() {
           <div className="text-center space-y-3">
             <span className="text-xs font-mono text-[#B39359] tracking-widest uppercase">פגישות וייעוץ אישי</span>
             <h1 className="text-3xl sm:text-5xl font-serif font-bold text-[#141210]">פגישה בבורסת היהלומים</h1>
-            <p className="text-xs sm:text-sm text-[#8F8171]">בניין שמשון, בבורסת היהלומים רמת גן</p>
+            <p className="text-xs sm:text-sm text-[#8F8171]">בניין שמשון, בורסת היהלומים רמת גן</p>
             <div className="w-12 h-0.5 bg-[#B39359] mx-auto mt-2" />
           </div>
 
