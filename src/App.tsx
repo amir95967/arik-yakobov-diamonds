@@ -26,7 +26,11 @@ import {
   Image as ImageIcon, 
   FileText, 
   Settings, 
-  Trash 
+  Trash,
+  BarChart3,
+  Users,
+  Globe,
+  Activity
 } from 'lucide-react';
 import { supabase } from './supabase';
 
@@ -215,12 +219,22 @@ export default function App() {
   const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(false);
   const [selectedProductView, setSelectedProductView] = useState<DiamondProduct | null>(null);
 
+  // Dynamic Site Settings
   const [phoneText, setPhoneText] = useState('054-4847078');
   const [heroTitle, setHeroTitle] = useState('היהלומים הנדירים של בורסת היהלומים');
   const [heroSubTitle, setHeroSubTitle] = useState('חוויית בוטיק יוקרתית בבניין שמשון. רכישת יהלומים מלוטשים ותכשיטים בעיצוב אישי, ללא פערי תיווך, בדירוג הבינלאומי המוביל GIA / IGI.');
   const [aboutText, setAboutText] = useState('אנו מתמחים בייצור תכשיטי עילית בעיצוב אישי וברכישת יהלומים טבעיים ויהלומי מעבדה ישירות מחברי בורסת היהלומים ברמת גן, ללא פערי תיווך וללא עמלות מיותרות.');
   const [marqueeText, setMarqueeText] = useState(DEFAULT_MARQUEE_TEXT);
 
+  // Analytics Stats States
+  const [statsData, setStatsData] = useState({
+    last24Hours: 0,
+    last30Days: 0,
+    totalViews: 0,
+    topPages: [] as { path: string; count: number }[]
+  });
+
+  // Dynamic Carousel Slides
   const [carouselSlides, setCarouselSlides] = useState<CarouselSlide[]>(DEFAULT_CAROUSEL_SLIDES);
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
 
@@ -228,7 +242,56 @@ export default function App() {
     fetchSiteSettings();
     fetchCarouselSlides();
     fetchProducts();
-  }, []);
+    recordPageView(currentRoute);
+  }, [currentRoute]);
+
+  const recordPageView = async (path: string) => {
+    try {
+      await supabase.from('page_views').insert([
+        { path: `/${path}`, user_agent: navigator.userAgent }
+      ]);
+    } catch (err) {
+      // Silent catch for analytics
+    }
+  };
+
+  const fetchAnalyticsStats = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('page_views')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        const now = new Date().getTime();
+        const oneDay = 24 * 60 * 60 * 1000;
+        const thirtyDays = 30 * oneDay;
+
+        const last24 = data.filter(v => now - new Date(v.created_at).getTime() <= oneDay).length;
+        const last30 = data.filter(v => now - new Date(v.created_at).getTime() <= thirtyDays).length;
+        const total = data.length;
+
+        // Count top pages
+        const counts: { [key: string]: number } = {};
+        data.forEach(v => {
+          counts[v.path] = (counts[v.path] || 0) + 1;
+        });
+
+        const topPages = Object.keys(counts)
+          .map(path => ({ path, count: counts[path] }))
+          .sort((a, b) => b.count - a.count);
+
+        setStatsData({
+          last24Hours: last24,
+          last30Days: last30,
+          totalViews: total,
+          topPages
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching analytics:', err);
+    }
+  };
 
   const fetchSiteSettings = async () => {
     try {
@@ -301,7 +364,8 @@ export default function App() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
-  const [adminTab, setAdminTab] = useState<'products' | 'carousel' | 'content' | 'settings'>('products');
+  // Admin Dashboard Tabs including 'stats'
+  const [adminTab, setAdminTab] = useState<'products' | 'carousel' | 'content' | 'settings' | 'stats'>('products');
 
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [authStep, setAuthStep] = useState<'credentials' | 'enroll_qr' | 'verify_code'>('credentials');
@@ -345,7 +409,7 @@ export default function App() {
     if (!isAdminAuthenticated) return;
 
     let timeoutId: ReturnType<typeof setTimeout>;
-    const INACTIVITY_LIMIT = 15 * 60 * 1000; // 15 Minutes
+    const INACTIVITY_LIMIT = 15 * 60 * 1000;
 
     const resetTimer = () => {
       clearTimeout(timeoutId);
@@ -1736,6 +1800,7 @@ export default function App() {
                       fetchSiteSettings();
                       fetchCarouselSlides();
                       fetchProducts();
+                      fetchAnalyticsStats();
                     }}
                     className="p-2.5 px-4 rounded-full border border-[#B39359]/30 bg-[#201D19] hover:bg-[#2A2621] text-[#D8C7B0] transition-colors flex items-center gap-2 text-xs font-semibold"
                   >
@@ -1800,6 +1865,21 @@ export default function App() {
                 >
                   <Settings className="w-4 h-4" />
                   <span>טלפון ופרטי קשר</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setAdminTab('stats');
+                    fetchAnalyticsStats();
+                  }}
+                  className={`px-5 py-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
+                    adminTab === 'stats'
+                      ? 'bg-[#141210] text-[#B39359] shadow-md'
+                      : 'bg-white text-[#544B41] border border-[#EAE3D6] hover:bg-[#FAF8F5]'
+                  }`}
+                >
+                  <BarChart3 className="w-4 h-4 text-[#B39359]" />
+                  <span>סטטיסטיקות ואנליטיקה</span>
                 </button>
               </div>
 
@@ -2300,6 +2380,82 @@ export default function App() {
                         </button>
                       </div>
                     </form>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 5: STATISTICS & ANALYTICS (NEW!) */}
+              {adminTab === 'stats' && (
+                <div className="space-y-8 animate-in fade-in duration-150 text-right">
+                  <div className="flex items-center justify-between bg-white p-6 rounded-3xl border border-[#EAE3D6]">
+                    <div>
+                      <h3 className="font-serif font-bold text-lg text-[#141210]">סטטיסטיקות צפיות ומבקרים באתר</h3>
+                      <p className="text-xs text-[#8F8171] mt-0.5">נתונים בזמן אמת מבוססים על פעילות הגולשים באתר</p>
+                    </div>
+                    <button
+                      onClick={fetchAnalyticsStats}
+                      className="px-4 py-2 bg-[#FAF8F5] border border-[#EAE3D6] rounded-xl text-xs font-semibold hover:bg-[#EAE3D6] flex items-center gap-1.5"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5 text-[#B39359]" />
+                      <span>רענן נתונים</span>
+                    </button>
+                  </div>
+
+                  {/* STATS CARDS */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                    <div className="bg-white p-6 rounded-3xl border border-[#EAE3D6] shadow-xs flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-semibold text-[#8F8171] block">כניסות ב-24 שעות האחרונות</span>
+                        <span className="text-3xl font-serif font-bold text-[#141210] mt-1 block">{statsData.last24Hours}</span>
+                      </div>
+                      <div className="w-12 h-12 rounded-2xl bg-[#F5F0E6] flex items-center justify-center text-[#B39359]">
+                        <Activity className="w-6 h-6" />
+                      </div>
+                    </div>
+
+                    <div className="bg-white p-6 rounded-3xl border border-[#EAE3D6] shadow-xs flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-semibold text-[#8F8171] block">כניסות ב-30 הימים האחרונים</span>
+                        <span className="text-3xl font-serif font-bold text-[#141210] mt-1 block">{statsData.last30Days}</span>
+                      </div>
+                      <div className="w-12 h-12 rounded-2xl bg-[#F5F0E6] flex items-center justify-center text-[#B39359]">
+                        <Users className="w-6 h-6" />
+                      </div>
+                    </div>
+
+                    <div className="bg-white p-6 rounded-3xl border border-[#EAE3D6] shadow-xs flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-semibold text-[#8F8171] block">סך הכל צפיות באתר</span>
+                        <span className="text-3xl font-serif font-bold text-[#141210] mt-1 block">{statsData.totalViews}</span>
+                      </div>
+                      <div className="w-12 h-12 rounded-2xl bg-[#F5F0E6] flex items-center justify-center text-[#B39359]">
+                        <Globe className="w-6 h-6" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* TOP PAGES TABLE */}
+                  <div className="bg-white rounded-3xl border border-[#EAE3D6] shadow-xs overflow-hidden p-6 space-y-4">
+                    <h4 className="font-serif font-bold text-base text-[#141210]">העמודים הנצפים ביותר</h4>
+                    <div className="divide-y divide-[#EAE3D6]">
+                      {statsData.topPages.length === 0 ? (
+                        <p className="text-xs text-[#8F8171] py-4 text-center">אין עדיין נתוני צפיות במערכת.</p>
+                      ) : (
+                        statsData.topPages.map((page, idx) => (
+                          <div key={page.path} className="py-3 flex items-center justify-between text-xs font-medium">
+                            <div className="flex items-center gap-3">
+                              <span className="w-6 h-6 rounded-full bg-[#FAF8F5] border border-[#EAE3D6] flex items-center justify-center text-[10px] font-mono text-[#8F8171]">
+                                #{idx + 1}
+                              </span>
+                              <span className="font-mono text-[#141210]" dir="ltr">{page.path}</span>
+                            </div>
+                            <span className="px-3 py-1 rounded-full bg-[#F5F0E6] text-[#B39359] font-bold">
+                              {page.count} צפיות
+                            </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
