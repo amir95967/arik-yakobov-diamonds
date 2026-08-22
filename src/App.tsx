@@ -71,13 +71,33 @@ const WHATSAPP_LINK = `https://wa.me/972544847078?text=${encodeURIComponent('ש�
 
 const DEFAULT_MARQUEE_TEXT = '✦ Arik Yakobov Diamonds 💎 | ייצור תכשיטי יוקרה בעיצוב אישי | Lab & Natural Diamonds | 📍 בורסת היהלומים רמת גן, בניין שמשון | 📞 054-4847078 | תעודות גמולוגיות בינלאומיות GIA / IGI ✦';
 
-// רשימת התמונות שמתחלפות אוטומטית בדף הבית
-const HERO_IMAGES = [
-  '/images/ring-marquise.webp',
-  '/images/ring-round-solitaire.webp',
-  '/images/ring-cushion-pave.webp',
-  '/images/ring-oval-gold.webp',
-  '/images/ring-round-split.webp'
+// רשימת התמונות שרצות בסליידר דף הבית
+const HERO_SLIDES = [
+  {
+    image: '/images/ring-marquise.webp',
+    title: 'טבעת סוליטר מרקיזה 1.80 קראט',
+    tag: 'יהלום טבעי Natural'
+  },
+  {
+    image: '/images/ring-round-solitaire.webp',
+    title: 'טבעת סוליטר קלאסית 6 שיניים',
+    tag: 'חיתוך עגול מושלם'
+  },
+  {
+    image: '/images/ring-cushion-pave.webp',
+    title: 'טבעת קושיון בשיבוץ Pavé',
+    tag: 'Lab Diamond יוקרתי'
+  },
+  {
+    image: '/images/ring-oval-gold.webp',
+    title: 'טבעת אובל בזהב צהוב 18K',
+    tag: 'הילה נסתרת Hidden Halo'
+  },
+  {
+    image: '/images/ring-round-split.webp',
+    title: 'טבעת סוליטר חישוק כפול משובץ',
+    tag: 'ייצור אישי בבורסה'
+  }
 ];
 
 const SHAPES_DATA: { value: DiamondShape; labelHe: string; labelEn: string }[] = [
@@ -184,13 +204,13 @@ export default function App() {
   const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(false);
   const [selectedProductView, setSelectedProductView] = useState<DiamondProduct | null>(null);
 
-  // סליידר תמונות אוטומטי לדף הבית
+  // סליידר מתחלף כל 3.5 שניות
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentHeroIndex((prevIndex) => (prevIndex + 1) % HERO_IMAGES.length);
-    }, 3500); // מתחלף כל 3.5 שניות
+      setCurrentHeroIndex((prevIndex) => (prevIndex + 1) % HERO_SLIDES.length);
+    }, 3500);
 
     return () => clearInterval(timer);
   }, []);
@@ -840,38 +860,37 @@ export default function App() {
               <div className="lg:col-span-5 relative z-10 flex justify-center">
                 <div className="w-full max-w-md aspect-4/5 rounded-3xl overflow-hidden border border-[#B39359]/30 shadow-2xl relative group bg-[#1A1815]">
                   
-                  {HERO_IMAGES.map((imgSrc, idx) => (
-                    <img 
-                      key={imgSrc}
-                      src={imgSrc} 
-                      alt={`Arik Yakobov Diamond ${idx + 1}`} 
-                      onError={(e) => {
-                        // Fallback אם התמונה טרם הועלתה פיזית ל-public/images
-                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=1200&q=90';
-                      }}
-                      className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
-                        idx === currentHeroIndex ? 'opacity-100 scale-105 transition-transform duration-700' : 'opacity-0 scale-100 pointer-events-none'
+                  {HERO_SLIDES.map((slide, idx) => (
+                    <div 
+                      key={slide.image}
+                      className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${
+                        idx === currentHeroIndex ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
                       }`}
-                    />
+                    >
+                      <img 
+                        src={slide.image} 
+                        alt={slide.title} 
+                        className="w-full h-full object-cover scale-105"
+                      />
+                      
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-end p-8 text-right">
+                        <span className="text-[#B39359] text-[11px] font-mono tracking-widest uppercase">{slide.tag}</span>
+                        <h3 className="font-serif font-bold text-white text-lg sm:text-xl mt-1">{slide.title}</h3>
+                        <p className="text-[11px] text-[#D8C7B0]/80 mt-0.5">בורסת היהלומים רמת גן, בניין שמשון</p>
+                      </div>
+                    </div>
                   ))}
 
-                  {/* Gradient Overlay & Badge */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent flex flex-col justify-end p-8 text-right z-20 pointer-events-none">
-                    <span className="text-[#B39359] text-xs font-mono tracking-widest uppercase">בניין שמשון, רמת גן</span>
-                    <h3 className="font-serif font-bold text-white text-xl sm:text-2xl mt-1">חדר עסקאות VIP</h3>
-                    <p className="text-xs text-[#D8C7B0]/80 mt-1">מפגש אישי והתאמה מושלמת של יהלום ועיצוב</p>
-                    
-                    {/* Slide Dots Indicator */}
-                    <div className="flex gap-1.5 justify-end mt-4">
-                      {HERO_IMAGES.map((_, dotIdx) => (
-                        <span 
-                          key={dotIdx}
-                          className={`h-1.5 rounded-full transition-all duration-500 ${
-                            dotIdx === currentHeroIndex ? 'w-6 bg-[#B39359]' : 'w-1.5 bg-white/40'
-                          }`}
-                        />
-                      ))}
-                    </div>
+                  {/* Slide Indicator Dots */}
+                  <div className="absolute bottom-4 left-6 z-20 flex gap-1.5">
+                    {HERO_SLIDES.map((_, dotIdx) => (
+                      <span 
+                        key={dotIdx}
+                        className={`h-1.5 rounded-full transition-all duration-500 ${
+                          dotIdx === currentHeroIndex ? 'w-5 bg-[#B39359]' : 'w-1.5 bg-white/40'
+                        }`}
+                      />
+                    ))}
                   </div>
                 </div>
               </div>
@@ -1083,9 +1102,6 @@ export default function App() {
                             <img
                               src={product.image}
                               alt={product.title}
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=800&q=85';
-                              }}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                             />
                             
@@ -1177,9 +1193,6 @@ export default function App() {
                 <img 
                   src={selectedProductView.image} 
                   alt={selectedProductView.title}
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=800&q=85';
-                  }}
                   className="w-full h-full object-cover" 
                 />
                 <div className="absolute top-4 right-4 flex items-center gap-2">
