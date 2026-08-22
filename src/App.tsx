@@ -215,21 +215,43 @@ export default function App() {
   const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(false);
   const [selectedProductView, setSelectedProductView] = useState<DiamondProduct | null>(null);
 
-  // Dynamic Site Settings
-  const [phoneText, setPhoneText] = useState(() => localStorage.getItem('ay_phone') || '054-4847078');
-  const [heroTitle, setHeroTitle] = useState(() => localStorage.getItem('ay_hero_title') || 'היהלומים הנדירים של בורסת היהלומים');
-  const [heroSubTitle, setHeroSubTitle] = useState(() => localStorage.getItem('ay_hero_subtitle') || 'חוויית בוטיק יוקרתית בחדר העסקאות בבניין שמשון. רכישת יהלומים מלוטשים ותכשיטים בעיצוב אישי, ללא פערי תיווך, בדירוג הבינלאומי המוביל GIA / IGI.');
-  const [aboutText, setAboutText] = useState(() => localStorage.getItem('ay_about_text') || 'אנו מתמחים בייצור תכשיטי עילית בעיצוב אישי וברכישת יהלומים טבעיים ויהלומי מעבדה ישירות מחברי בורסת היהלומים ברמת גן, ללא פערי תיווך וללא עמלות מיותרות.');
-  const [marqueeText, setMarqueeText] = useState(() => localStorage.getItem('ay_marquee_text') || DEFAULT_MARQUEE_TEXT);
+  // Dynamic Site Settings from Supabase
+  const [phoneText, setPhoneText] = useState('054-4847078');
+  const [heroTitle, setHeroTitle] = useState('היהלומים הנדירים של בורסת היהלומים');
+  const [heroSubTitle, setHeroSubTitle] = useState('חוויית בוטיק יוקרתית בחדר העסקאות בבניין שמשון. רכישת יהלומים מלוטשים ותכשיטים בעיצוב אישי, ללא פערי תיווך, בדירוג הבינלאומי המוביל GIA / IGI.');
+  const [aboutText, setAboutText] = useState('אנו מתמחים בייצור תכשיטי עילית בעיצוב אישי וברכישת יהלומים טבעיים ויהלומי מעבדה ישירות מחברי בורסת היהלומים ברמת גן, ללא פערי תיווך וללא עמלות מיותרות.');
+  const [marqueeText, setMarqueeText] = useState(DEFAULT_MARQUEE_TEXT);
 
   // Dynamic Carousel Slides
   const [carouselSlides, setCarouselSlides] = useState<CarouselSlide[]>(DEFAULT_CAROUSEL_SLIDES);
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
 
-  // Fetch Carousel Slides from Supabase
+  // Fetch Settings and Carousel from Supabase on Load
   useEffect(() => {
+    fetchSiteSettings();
     fetchCarouselSlides();
+    fetchProducts();
   }, []);
+
+  const fetchSiteSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('*')
+        .eq('id', 'main_settings')
+        .single();
+
+      if (!error && data) {
+        if (data.phone) setPhoneText(data.phone);
+        if (data.hero_title) setHeroTitle(data.hero_title);
+        if (data.hero_subtitle) setHeroSubTitle(data.hero_subtitle);
+        if (data.about_text) setAboutText(data.about_text);
+        if (data.marquee_text) setMarqueeText(data.marquee_text);
+      }
+    } catch (err) {
+      console.error('Error fetching settings:', err);
+    }
+  };
 
   const fetchCarouselSlides = async () => {
     try {
@@ -240,18 +262,24 @@ export default function App() {
 
       if (!error && data && data.length > 0) {
         setCarouselSlides(data);
-      } else {
-        const localSaved = localStorage.getItem('ay_carousel_slides');
-        if (localSaved) {
-          try {
-            setCarouselSlides(JSON.parse(localSaved));
-          } catch (e) {
-            setCarouselSlides(DEFAULT_CAROUSEL_SLIDES);
-          }
-        }
       }
     } catch (err) {
       console.error('Error fetching slides:', err);
+    }
+  };
+
+  const fetchProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!error && data && data.length > 0) {
+        setProducts(data);
+      }
+    } catch (err) {
+      console.error('Error fetching products:', err);
     }
   };
 
@@ -353,26 +381,6 @@ export default function App() {
     window.addEventListener('popstate', handlePop);
     return () => window.removeEventListener('popstate', handlePop);
   }, []);
-
-  // Fetch products from Supabase
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  const fetchProducts = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (!error && data && data.length > 0) {
-        setProducts(data);
-      }
-    } catch (err) {
-      console.error('Error fetching products:', err);
-    }
-  };
 
   // Auth Session Check
   useEffect(() => {
@@ -504,6 +512,30 @@ export default function App() {
     setVerifyCode('');
   };
 
+  // Save Settings to Supabase
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const { error } = await supabase.from('site_settings').upsert({
+        id: 'main_settings',
+        marquee_text: marqueeText,
+        hero_title: heroTitle,
+        hero_subtitle: heroSubTitle,
+        about_text: aboutText,
+        phone: phoneText,
+        updated_at: new Date().toISOString()
+      });
+
+      if (error) {
+        alert(`שגיאה בשמירת הגדרות: ${error.message}`);
+      } else {
+        alert('כל התכנים והטקסטים נשמרו בהצלחה ב-Supabase ומעודכנים כעת בכל האתר!');
+      }
+    } catch (err) {
+      alert('אירעה שגיאה בעת שמירת ההגדרות.');
+    }
+  };
+
   // Carousel Handlers
   const handleAddSlide = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -544,16 +576,12 @@ export default function App() {
 
     if (!error) {
       setCarouselSlides(prev => [...prev, slideObj]);
-      localStorage.setItem('ay_carousel_slides', JSON.stringify([...carouselSlides, slideObj]));
       setNewSlide({ title: '', tag: '', image: '' });
       setNewSlideImagePreview(null);
       if (slideFileInputRef.current) slideFileInputRef.current.value = '';
-      alert('שקופית חדשה נוספה בהצלחה ונשמרה בכל האתר!');
+      alert('שקופית חדשה נוספה ונשמרה ב-Supabase!');
     } else {
       setCarouselSlides(prev => [...prev, slideObj]);
-      localStorage.setItem('ay_carousel_slides', JSON.stringify([...carouselSlides, slideObj]));
-      setNewSlide({ title: '', tag: '', image: '' });
-      setNewSlideImagePreview(null);
       alert('שקופית נוספה בהצלחה!');
     }
   };
@@ -566,11 +594,8 @@ export default function App() {
     if (!window.confirm('האם להסיר לצמיתות שקופית זו מהאתר?')) return;
 
     await supabase.from('carousel_slides').delete().eq('id', id);
-
-    const updated = carouselSlides.filter(s => s.id !== id);
-    setCarouselSlides(updated);
-    localStorage.setItem('ay_carousel_slides', JSON.stringify(updated));
-    alert('השקופית הוסרה בהצלחה!');
+    setCarouselSlides(prev => prev.filter(s => s.id !== id));
+    alert('השקופית הוסרה בהצלחה מכל האתר!');
   };
 
   // Product Add / Update Handlers
@@ -1661,7 +1686,11 @@ export default function App() {
                 </div>
                 <div className="flex items-center gap-3">
                   <button
-                    onClick={fetchProducts}
+                    onClick={() => {
+                      fetchSiteSettings();
+                      fetchCarouselSlides();
+                      fetchProducts();
+                    }}
                     className="p-2.5 px-4 rounded-full border border-[#B39359]/30 bg-[#201D19] hover:bg-[#2A2621] text-[#D8C7B0] transition-colors flex items-center gap-2 text-xs font-semibold"
                   >
                     <RefreshCw className="w-3.5 h-3.5 text-[#B39359]" />
@@ -1731,8 +1760,6 @@ export default function App() {
               {/* TAB 1: PRODUCTS MANAGER */}
               {adminTab === 'products' && (
                 <div className="space-y-8 animate-in fade-in duration-150">
-                  
-                  {/* ADD PRODUCT */}
                   <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EAE3D6] shadow-xs space-y-6">
                     <div className="flex items-center gap-2 border-b border-[#EAE3D6] pb-4">
                       <Plus className="w-5 h-5 text-[#B39359]" />
@@ -1883,7 +1910,7 @@ export default function App() {
                             ref={fileInputRef}
                             onChange={(e) => {
                               if (e.target.files?.[0]) {
-                                setNewSlideImagePreview(URL.createObjectURL(e.target.files[0]));
+                                setUploadedImagePreview(URL.createObjectURL(e.target.files[0]));
                               }
                             }}
                             className="hidden"
@@ -2011,8 +2038,6 @@ export default function App() {
               {/* TAB 2: HERO CAROUSEL MANAGER */}
               {adminTab === 'carousel' && (
                 <div className="space-y-8 animate-in fade-in duration-150">
-                  
-                  {/* ADD NEW SLIDE */}
                   <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EAE3D6] shadow-xs space-y-6">
                     <div className="flex items-center gap-2 border-b border-[#EAE3D6] pb-4">
                       <Plus className="w-5 h-5 text-[#B39359]" />
@@ -2097,7 +2122,6 @@ export default function App() {
                     </form>
                   </div>
 
-                  {/* CURRENT SLIDES LIST */}
                   <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EAE3D6] shadow-xs space-y-6">
                     <h3 className="font-serif font-bold text-base text-[#141210]">שקופיות פעילות בקרוסלה ({carouselSlides.length})</h3>
                     
@@ -2135,16 +2159,9 @@ export default function App() {
               {adminTab === 'content' && (
                 <div className="space-y-8 animate-in fade-in duration-150">
                   <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EAE3D6] shadow-xs space-y-6">
-                    <h3 className="font-serif font-bold text-base text-[#141210]">עריכת טקסטים ותכנים באתר</h3>
+                    <h3 className="font-serif font-bold text-base text-[#141210]">עריכת טקסטים ותכנים באתר (נשמר ישירות ב-Supabase)</h3>
 
-                    <form onSubmit={(e) => {
-                      e.preventDefault();
-                      localStorage.setItem('ay_marquee_text', marqueeText);
-                      localStorage.setItem('ay_hero_title', heroTitle);
-                      localStorage.setItem('ay_hero_subtitle', heroSubTitle);
-                      localStorage.setItem('ay_about_text', aboutText);
-                      alert('כל הטקסטים נשמרו ועודכנו בהצלחה באתר!');
-                    }} className="space-y-5 text-xs">
+                    <form onSubmit={handleSaveSettings} className="space-y-5 text-xs">
                       
                       <div>
                         <label className="block mb-1 font-semibold text-[#544B41]">השורה הרצה למעלה (Ticker Marquee)</label>
@@ -2196,7 +2213,7 @@ export default function App() {
                           className="px-8 py-3 bg-[#141210] text-[#D8C7B0] rounded-xl font-semibold text-xs flex items-center gap-2 hover:bg-[#201D19]"
                         >
                           <Save className="w-4 h-4 text-[#B39359]" />
-                          <span>שמור ועדכן את כל הטקסטים באתר</span>
+                          <span>שמור ועדכן את כל הטקסטים ב-Supabase</span>
                         </button>
                       </div>
                     </form>
@@ -2210,11 +2227,7 @@ export default function App() {
                   <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EAE3D6] shadow-xs space-y-6">
                     <h3 className="font-serif font-bold text-base text-[#141210]">הגדרות טלפון ופרטי קשר</h3>
 
-                    <form onSubmit={(e) => {
-                      e.preventDefault();
-                      localStorage.setItem('ay_phone', phoneText);
-                      alert('מספר הטלפון עודכן בהצלחה בכל האתר!');
-                    }} className="space-y-4 text-xs">
+                    <form onSubmit={handleSaveSettings} className="space-y-4 text-xs">
                       <div>
                         <label className="block mb-1 font-semibold text-[#544B41]">מספר טלפון לתצוגה ושיחות</label>
                         <input
@@ -2237,7 +2250,7 @@ export default function App() {
                           className="px-8 py-3 bg-[#141210] text-[#D8C7B0] rounded-xl font-semibold text-xs flex items-center gap-2 hover:bg-[#201D19]"
                         >
                           <Save className="w-4 h-4 text-[#B39359]" />
-                          <span>שמור הגדרות</span>
+                          <span>שמור טלפון ב-Supabase</span>
                         </button>
                       </div>
                     </form>
