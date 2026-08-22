@@ -17,10 +17,6 @@ import {
   RefreshCw,
   ChevronDown,
   Sparkles,
-  Award,
-  DollarSign,
-  Package,
-  MessageCircle,
   Clock,
   Send,
   Save
@@ -50,7 +46,7 @@ export type DiamondType = 'all' | 'Natural' | 'Lab';
 
 export interface DiamondProduct {
   id: string;
-  sku: string;
+  sku?: string;
   title: string;
   category: string;
   shape: DiamondShape;
@@ -96,7 +92,6 @@ const CATEGORIES_DATA: { value: ProductCategory; labelHe: string }[] = [
 const INITIAL_PRODUCTS: DiamondProduct[] = [
   {
     id: '1',
-    sku: 'AY-10492',
     title: 'טבעת סוליטר קלאסית בשיבוץ יהלום טבעי עגול 1.50 קראט',
     category: 'engagement',
     diamond_type: 'Natural',
@@ -112,7 +107,6 @@ const INITIAL_PRODUCTS: DiamondProduct[] = [
   },
   {
     id: '2',
-    sku: 'AY-20184',
     title: 'טבעת אובל יוקרתית בשיבוץ יהלום 2.05 קראט',
     category: 'engagement',
     diamond_type: 'Lab',
@@ -128,7 +122,6 @@ const INITIAL_PRODUCTS: DiamondProduct[] = [
   },
   {
     id: '3',
-    sku: 'AY-30911',
     title: 'יהלום מרקיזה נדיר בחיתוך מושלם 1.80 קראט Natural',
     category: 'loose',
     diamond_type: 'Natural',
@@ -148,13 +141,11 @@ export default function App() {
   const [currentRoute, setCurrentRoute] = useState<'home' | 'shop' | 'about' | 'contactus' | 'admin'>('home');
   const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(false);
 
-  // Marquee announcement text (editable in admin)
   const [marqueeText, setMarqueeText] = useState<string>(() => {
     return localStorage.getItem('ay_marquee_text') || DEFAULT_MARQUEE_TEXT;
   });
   const [tempMarqueeInput, setTempMarqueeInput] = useState<string>(marqueeText);
 
-  // Products & Filter States
   const [products, setProducts] = useState<DiamondProduct[]>(INITIAL_PRODUCTS);
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('all');
   const [selectedShape, setSelectedShape] = useState<string>('all');
@@ -165,11 +156,9 @@ export default function App() {
   const [priceRange, setPriceRange] = useState<number>(100000);
   const [minCarat, setMinCarat] = useState<number>(0.3);
 
-  // Responsive Drawer States
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
-  // Admin Auth States
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [authStep, setAuthStep] = useState<'credentials' | 'enroll_qr' | 'verify_code'>('credentials');
   const [emailInput, setEmailInput] = useState('');
@@ -180,14 +169,12 @@ export default function App() {
   const [loginError, setLoginError] = useState('');
   const [isLoadingAuth, setIsLoadingAuth] = useState(false);
 
-  // Admin Product Management
   const [editingProduct, setEditingProduct] = useState<DiamondProduct | null>(null);
   const [uploadedImagePreview, setUploadedImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editFileInputRef = useRef<HTMLInputElement>(null);
 
   const [newProduct, setNewProduct] = useState({
-    sku: '',
     title: '',
     category: 'engagement',
     diamond_type: 'Natural' as 'Natural' | 'Lab',
@@ -390,7 +377,7 @@ export default function App() {
 
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newProduct.sku || !newProduct.title || !newProduct.price) {
+    if (!newProduct.title || !newProduct.price) {
       alert('נא למלא את כל שדות החובה');
       return;
     }
@@ -414,9 +401,11 @@ export default function App() {
       }
     }
 
+    const generatedSku = `AY-${Date.now().toString().slice(-6)}`;
+
     const { data, error } = await supabase.from('products').insert([
       {
-        sku: newProduct.sku,
+        sku: generatedSku,
         title: newProduct.title,
         category: newProduct.category,
         diamond_type: newProduct.diamond_type,
@@ -438,7 +427,6 @@ export default function App() {
     } else if (data) {
       setProducts(prev => [data[0], ...prev]);
       setNewProduct({
-        sku: '',
         title: '',
         category: 'engagement',
         diamond_type: 'Natural',
@@ -453,7 +441,7 @@ export default function App() {
       });
       setUploadedImagePreview(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
-      alert('הפריט נוסף ונשמר בהצלחה ב-Supabase!');
+      alert('הפריט נוסף ונשמר בהצלחה!');
     }
   };
 
@@ -484,7 +472,6 @@ export default function App() {
       const { error } = await supabase
         .from('products')
         .update({
-          sku: editingProduct.sku,
           title: editingProduct.title,
           category: editingProduct.category,
           diamond_type: editingProduct.diamond_type || 'Natural',
@@ -543,20 +530,14 @@ export default function App() {
     const matchesCarat = product.carat >= minCarat;
     const matchesPrice = product.price <= priceRange;
     const matchesSearch = product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          product.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           product.shape.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesShape && matchesType && matchesColor && matchesClarity && matchesCarat && matchesPrice && matchesSearch;
   });
 
-  const totalInventoryValue = products.reduce((sum, p) => sum + (p.price || 0), 0);
-  const activeCount = products.filter(p => p.status === 'available').length;
-  const reservedCount = products.filter(p => p.status === 'reserved').length;
-  const soldCount = products.filter(p => p.status === 'sold').length;
-
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-[#1C1A17] font-sans flex flex-col antialiased overflow-x-hidden" dir="rtl">
       
-      {/* 1. RUNNING TICKER MARQUEE (SMOOTH KEYFRAME ANIMATION) */}
+      {/* 1. RUNNING TICKER MARQUEE */}
       <style>{`
         @keyframes customMarquee {
           0% { transform: translateX(0%); }
@@ -583,11 +564,10 @@ export default function App() {
         </div>
       </div>
 
-      {/* 2. MAIN HEADER (LOGO ON RIGHT, NO ADMIN LOCK ON TOP) */}
+      {/* 2. MAIN HEADER */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#EDE6DC]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           
-          {/* RIGHT: CLICKABLE BRAND LOGO */}
           <div 
             onClick={() => navigateTo('home')} 
             className="flex items-center gap-2.5 sm:gap-3 cursor-pointer group select-none"
@@ -605,7 +585,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* CENTER: NAVIGATION LINKS (DESKTOP) */}
           <nav className="hidden md:flex items-center gap-8 text-xs font-semibold tracking-wider text-[#575047]">
             <button
               onClick={() => navigateTo('home')}
@@ -616,7 +595,6 @@ export default function App() {
               דף הבית
             </button>
 
-            {/* SHOP DROPDOWN */}
             <div className="relative group">
               <button
                 onClick={() => navigateTo('shop')}
@@ -674,7 +652,6 @@ export default function App() {
             </button>
           </nav>
 
-          {/* LEFT: PHONE ACTION & MOBILE BURGER */}
           <div className="flex items-center gap-3">
             <a
               href={`tel:${PHONE_NUMBER}`}
@@ -881,13 +858,13 @@ export default function App() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="font-semibold text-[#575047]">חיפוש מק"ט או כותרת</label>
+                <label className="font-semibold text-[#575047]">חיפוש כותרת או דגם</label>
                 <div className="relative">
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="AY-10492, מרקיזה..."
+                    placeholder="מרקיזה, סוליטר, טבעת..."
                     className="w-full pr-8 pl-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2] text-xs focus:outline-none focus:border-[#9E8255]"
                   />
                   <Search className="w-3.5 h-3.5 text-[#8C8275] absolute right-2.5 top-2.5" />
@@ -1034,8 +1011,8 @@ export default function App() {
 
                           <div className="p-5 space-y-3 text-right">
                             <div className="flex items-center justify-between text-[11px] text-[#8C8275]">
-                              <span className="font-mono">{product.sku}</span>
                               <span>{product.carat} קראט</span>
+                              <span>{product.certificate}</span>
                             </div>
 
                             <h3 className="font-serif font-bold text-sm text-[#1C1A17] leading-snug line-clamp-2">
@@ -1052,8 +1029,8 @@ export default function App() {
                                 <span className="font-bold text-[#1C1A17]">{product.clarity}</span>
                               </div>
                               <div className="bg-[#FAF8F5] border border-[#EDE6DC] rounded-lg py-1">
-                                <span className="text-[#8C8275] block">תעודה</span>
-                                <span className="font-bold text-[#1C1A17]">{product.certificate}</span>
+                                <span className="text-[#8C8275] block">חיתוך</span>
+                                <span className="font-bold text-[#1C1A17]">{product.cut}</span>
                               </div>
                             </div>
                           </div>
@@ -1068,7 +1045,7 @@ export default function App() {
                           </div>
 
                           <a
-                            href={`https://wa.me/972544847078?text=${encodeURIComponent(`שלום אריק, אני מתעניין בפריט ${product.title} (מק"ט: ${product.sku})`)}`}
+                            href={`https://wa.me/972544847078?text=${encodeURIComponent(`שלום אריק, אני מתעניין בפריט ${product.title}`)}`}
                             target="_blank"
                             rel="noreferrer"
                             className="px-4 py-2 bg-[#1C1A17] text-white rounded-xl text-xs font-semibold hover:bg-[#332F2A] transition-colors flex items-center gap-1.5"
@@ -1169,7 +1146,7 @@ export default function App() {
                 rel="noreferrer"
                 className="w-full py-3.5 bg-[#1C1A17] text-white rounded-xl font-semibold text-xs flex items-center justify-center gap-2 hover:bg-[#332F2A]"
               >
-                <MessageCircle className="w-4 h-4 text-[#C5A880]" />
+                <Phone className="w-4 h-4 text-[#C5A880]" />
                 <span>פתיחת שיחה בוואטסאפ</span>
               </a>
             </div>
@@ -1332,41 +1309,6 @@ export default function App() {
             </div>
           ) : (
             <div className="space-y-8">
-              
-              {/* STATS */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <div className="bg-[#11100E] text-white p-4 sm:p-5 rounded-2xl border border-[#2B2722] flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] sm:text-[11px] text-[#8C8275] block font-semibold">סה"כ שווי מלאי</span>
-                    <span className="text-base sm:text-xl font-bold font-mono text-[#C5A880]">₪{totalInventoryValue.toLocaleString()}</span>
-                  </div>
-                  <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-[#3E3832]" />
-                </div>
-
-                <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#EDE6DC] flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] sm:text-[11px] text-[#8C8275] block font-semibold">פריטים זמינים</span>
-                    <span className="text-base sm:text-xl font-bold text-emerald-600">{activeCount}</span>
-                  </div>
-                  <Package className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-100" />
-                </div>
-
-                <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#EDE6DC] flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] sm:text-[11px] text-[#8C8275] block font-semibold">שמורים ללקוחות</span>
-                    <span className="text-base sm:text-xl font-bold text-amber-600">{reservedCount}</span>
-                  </div>
-                  <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-amber-100" />
-                </div>
-
-                <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#EDE6DC] flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] sm:text-[11px] text-[#8C8275] block font-semibold">נמכרו</span>
-                    <span className="text-base sm:text-xl font-bold text-rose-600">{soldCount}</span>
-                  </div>
-                  <Award className="w-6 h-6 sm:w-8 sm:h-8 text-rose-100" />
-                </div>
-              </div>
 
               {/* EDIT RUNNING MARQUEE TEXT */}
               <div className="bg-white p-5 sm:p-6 rounded-3xl border border-[#EDE6DC] shadow-xs space-y-4">
@@ -1423,15 +1365,15 @@ export default function App() {
                   <h2 className="font-serif font-bold text-lg text-[#1C1A17]">הוספת פריט חדש למאגר</h2>
                 </div>
 
-                <form onSubmit={handleAddProduct} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-                  <div>
-                    <label className="block mb-1 font-semibold text-[#575047]">מק"ט (SKU) *</label>
+                <form onSubmit={handleAddProduct} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                  <div className="sm:col-span-2">
+                    <label className="block mb-1 font-semibold text-[#575047]">כותרת ושם הפריט *</label>
                     <input
                       type="text"
                       required
-                      placeholder="AY-9901"
-                      value={newProduct.sku}
-                      onChange={e => setNewProduct({ ...newProduct, sku: e.target.value })}
+                      placeholder="טבעת סוליטר בשיבוץ יהלום מרקיזה 1.80 קראט"
+                      value={newProduct.title}
+                      onChange={e => setNewProduct({ ...newProduct, title: e.target.value })}
                       className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2]"
                     />
                   </div>
@@ -1448,16 +1390,19 @@ export default function App() {
                     />
                   </div>
 
-                  <div className="sm:col-span-2">
-                    <label className="block mb-1 font-semibold text-[#575047]">כותרת ושם הפריט *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="טבעת סוליטר בשיבוץ יהלום מרקיזה 1.80 קראט"
-                      value={newProduct.title}
-                      onChange={e => setNewProduct({ ...newProduct, title: e.target.value })}
+                  <div>
+                    <label className="block mb-1 font-semibold text-[#575047]">קטגוריה</label>
+                    <select
+                      value={newProduct.category}
+                      onChange={e => setNewProduct({ ...newProduct, category: e.target.value })}
                       className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2]"
-                    />
+                    >
+                      <option value="engagement">טבעות אירוסין</option>
+                      <option value="loose">יהלומים משוחררים</option>
+                      <option value="tennis">צמידי טניס</option>
+                      <option value="earrings">עגילי יהלומים</option>
+                      <option value="high_jewelry">תכשיטי יוקרה בעיצוב אישי</option>
+                    </select>
                   </div>
 
                   <div>
@@ -1556,7 +1501,7 @@ export default function App() {
                     </select>
                   </div>
 
-                  <div className="sm:col-span-2 lg:col-span-4 p-4 rounded-2xl bg-[#FAF8F5] border border-dashed border-[#D5C7B2] flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="sm:col-span-2 lg:col-span-3 p-4 rounded-2xl bg-[#FAF8F5] border border-dashed border-[#D5C7B2] flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                       <input
                         type="file"
@@ -1587,7 +1532,7 @@ export default function App() {
                     )}
                   </div>
 
-                  <div className="sm:col-span-2 lg:col-span-4 flex justify-end">
+                  <div className="sm:col-span-2 lg:col-span-3 flex justify-end">
                     <button
                       type="submit"
                       className="w-full sm:w-auto px-8 py-3 bg-[#1C1A17] text-white rounded-xl font-semibold text-xs tracking-wider uppercase hover:bg-[#332F2A] shadow-xs cursor-pointer"
@@ -1611,11 +1556,11 @@ export default function App() {
                     <thead className="bg-[#FAF8F5] text-[#8C8275] border-b border-[#EDE6DC]">
                       <tr>
                         <th className="py-3.5 px-4 font-semibold">תמונה</th>
-                        <th className="py-3.5 px-4 font-semibold">מק"ט</th>
                         <th className="py-3.5 px-4 font-semibold">כותרת</th>
                         <th className="py-3.5 px-4 font-semibold">סוג</th>
                         <th className="py-3.5 px-4 font-semibold">חיתוך</th>
                         <th className="py-3.5 px-4 font-semibold">קראט</th>
+                        <th className="py-3.5 px-4 font-semibold">צבע/ניקיון</th>
                         <th className="py-3.5 px-4 font-semibold">מחיר</th>
                         <th className="py-3.5 px-4 font-semibold">סטטוס</th>
                         <th className="py-3.5 px-4 font-semibold text-center">פעולות</th>
@@ -1629,7 +1574,6 @@ export default function App() {
                             <td className="py-3 px-4">
                               <img src={p.image} alt={p.title} className="w-12 h-12 object-cover rounded-lg border border-[#EDE6DC]" />
                             </td>
-                            <td className="py-3 px-4 font-mono font-bold text-[#1C1A17]">{p.sku}</td>
                             <td className="py-3 px-4 font-medium max-w-xs truncate">{p.title}</td>
                             <td className="py-3 px-4">
                               <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${p.diamond_type === 'Lab' ? 'bg-amber-50 text-amber-700' : 'bg-neutral-100 text-neutral-800'}`}>
@@ -1640,6 +1584,7 @@ export default function App() {
                               {shapeObj ? shapeObj.labelHe : p.shape}
                             </td>
                             <td className="py-3 px-4">{p.carat} ct</td>
+                            <td className="py-3 px-4">{p.color} / {p.clarity}</td>
                             <td className="py-3 px-4 font-bold text-[#1C1A17]">₪{p.price.toLocaleString()}</td>
                             <td className="py-3 px-4">
                               <select
@@ -1696,7 +1641,7 @@ export default function App() {
                 <div className="flex items-center justify-between border-b border-[#EDE6DC] pb-4">
                   <div className="flex items-center gap-2">
                     <Edit3 className="w-5 h-5 text-[#9E8255]" />
-                    <h3 className="font-serif font-bold text-lg text-[#1C1A17]">עריכת פריט: {editingProduct.sku}</h3>
+                    <h3 className="font-serif font-bold text-lg text-[#1C1A17]">עריכת פריט</h3>
                   </div>
                   <button onClick={() => setEditingProduct(null)} className="p-1.5 rounded-full hover:bg-[#FAF8F5]">
                     <X className="w-5 h-5 text-[#8C8275]" />
@@ -1704,13 +1649,13 @@ export default function App() {
                 </div>
 
                 <form onSubmit={handleUpdateProduct} className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                  <div>
-                    <label className="block mb-1 font-semibold text-[#575047]">מק"ט</label>
+                  <div className="sm:col-span-2">
+                    <label className="block mb-1 font-semibold text-[#575047]">כותרת ושם הפריט</label>
                     <input
                       type="text"
                       required
-                      value={editingProduct.sku}
-                      onChange={e => setEditingProduct({ ...editingProduct, sku: e.target.value })}
+                      value={editingProduct.title}
+                      onChange={e => setEditingProduct({ ...editingProduct, title: e.target.value })}
                       className="w-full px-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2]"
                     />
                   </div>
@@ -1726,15 +1671,19 @@ export default function App() {
                     />
                   </div>
 
-                  <div className="sm:col-span-2">
-                    <label className="block mb-1 font-semibold text-[#575047]">כותרת ושם הפריט</label>
-                    <input
-                      type="text"
-                      required
-                      value={editingProduct.title}
-                      onChange={e => setEditingProduct({ ...editingProduct, title: e.target.value })}
+                  <div>
+                    <label className="block mb-1 font-semibold text-[#575047]">קטגוריה</label>
+                    <select
+                      value={editingProduct.category}
+                      onChange={e => setEditingProduct({ ...editingProduct, category: e.target.value })}
                       className="w-full px-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2]"
-                    />
+                    >
+                      <option value="engagement">טבעות אירוסין</option>
+                      <option value="loose">יהלומים משוחררים</option>
+                      <option value="tennis">צמידי טניס</option>
+                      <option value="earrings">עגילי יהלומים</option>
+                      <option value="high_jewelry">תכשיטי יוקרה בעיצוב אישי</option>
+                    </select>
                   </div>
 
                   <div>
@@ -1926,19 +1875,26 @@ export default function App() {
         </div>
       )}
 
-      {/* 4. FLOATING WHATSAPP BUTTON (BOTTOM LEFT) */}
+      {/* 4. OFFICIAL WHATSAPP FLOATING BUTTON (BOTTOM LEFT - ICON ONLY) */}
       <a
         href={WHATSAPP_LINK}
         target="_blank"
         rel="noreferrer"
-        className="fixed bottom-6 left-6 z-40 bg-[#25D366] text-white p-3.5 sm:px-5 sm:py-3.5 rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all duration-300 flex items-center gap-2 group"
-        aria-label="שיחה בוואטסאפ"
+        className="fixed bottom-6 left-6 z-40 bg-[#25D366] text-white w-14 h-14 rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all duration-300 flex items-center justify-center cursor-pointer hover:bg-[#20ba59]"
+        aria-label="וואטסאפ"
+        title="וואטסאפ"
       >
-        <MessageCircle className="w-6 h-6 fill-white" />
-        <span className="hidden sm:inline font-bold text-xs">וואטסאפ ישיר</span>
+        <svg 
+          viewBox="0 0 24 24" 
+          width="32" 
+          height="32" 
+          fill="currentColor"
+        >
+          <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2zm.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.19 8.19 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24zm4.52 11.51c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.98-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.02-1.25-.75-.67-1.26-1.5-1.4-1.75-.15-.25-.02-.39.11-.51.11-.11.25-.29.37-.44.13-.15.17-.25.25-.42.08-.17.04-.31-.02-.44-.06-.13-.56-1.35-.77-1.85-.2-.49-.41-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.61.13.17 1.77 2.7 4.29 3.79.6.26 1.07.41 1.44.53.6.19 1.15.16 1.58.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.07-.11-.23-.17-.48-.3z"/>
+        </svg>
       </a>
 
-      {/* 5. FOOTER (WITH ONLY ADMIN ACCESS LINK) */}
+      {/* 5. FOOTER */}
       <footer className="bg-[#11100E] text-[#EDE6DC] border-t border-[#2B2722] mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-right">
