@@ -4,7 +4,7 @@ import {
   Gem, ShieldCheck, Award, 
   Plus, Trash2, Edit3, MapPin, Clock, Upload, 
   Lock, X, Phone,
-  FileText, ChevronDown, 
+  FileText, ChevronDown, Menu,
   Eye, Type, Contrast, ZoomIn, ZoomOut, RotateCcw
 } from 'lucide-react';
 
@@ -169,6 +169,7 @@ export default function App() {
   const [readableFont, setReadableFont] = useState(false);
 
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const checkAdminRoute = () => {
@@ -838,8 +839,8 @@ export default function App() {
                 </form>
               </div>
 
-              {/* טבלת פריטים */}
-              <div className="p-4 sm:p-6 rounded-2xl bg-white border border-[#EDE6DC] overflow-x-auto">
+              {/* טבלת פריטים בדסקטופ */}
+              <div className="hidden md:block p-4 sm:p-6 rounded-2xl bg-white border border-[#EDE6DC] overflow-x-auto">
                 <table className="min-w-[680px] w-full text-right text-xs">
                   <thead className="border-b border-[#EDE6DC] text-[#8C8275]">
                     <tr>
@@ -895,6 +896,61 @@ export default function App() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+
+              {/* כרטיסי פריטים במובייל */}
+              <div className="md:hidden space-y-3">
+                {products.map(p => (
+                  <article key={p.id} className="p-4 rounded-2xl bg-white border border-[#EDE6DC] shadow-xs space-y-3">
+                    <div className="flex items-start gap-3">
+                      <img src={p.image} alt={p.title} className="w-16 h-16 rounded-xl object-cover bg-[#F4EFE6] shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-bold text-sm leading-snug break-words text-[#1C1A17]">{p.title}</h3>
+                        <p className="text-[10px] text-[#8C8275] mt-1">{p.sku}</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="p-2 rounded-lg bg-[#FAF8F5] border border-[#EDE6DC]">
+                        <span className="block text-[10px] text-[#8C8275]">צורה וקראט</span>
+                        <span className="font-semibold">{p.shape} • {p.carat}ct</span>
+                      </div>
+                      <div className="p-2 rounded-lg bg-[#FAF8F5] border border-[#EDE6DC]">
+                        <span className="block text-[10px] text-[#8C8275]">מחיר</span>
+                        <span className="font-bold">₪{p.price.toLocaleString()}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 pt-1">
+                      <select
+                        value={p.status}
+                        onChange={(e) => handleStatusChange(p.id, e.target.value as DiamondProduct['status'])}
+                        className="min-w-0 flex-1 px-2.5 py-2 rounded-lg bg-[#FAF8F5] border border-[#D5C7B2] text-xs"
+                        aria-label={`סטטוס ${p.title}`}
+                      >
+                        <option value="available">זמין</option>
+                        <option value="reserved">שמור</option>
+                        <option value="sold">נמכר</option>
+                      </select>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => { setEditingProduct(p); setUploadedImagePreview(p.image); }}
+                          className="p-2 text-[#9E8255] hover:bg-[#F4EFE6] rounded-lg transition-colors cursor-pointer"
+                          title="ערוך פריט"
+                          aria-label={`ערוך ${p.title}`}
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(p.id)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                          title="מחק פריט"
+                          aria-label={`מחק ${p.title}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
               </div>
             </>
           )}
@@ -1147,6 +1203,15 @@ export default function App() {
           </nav>
 
           <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(prev => !prev)}
+              className="md:hidden w-10 h-10 rounded-full bg-[#EFE9DF] text-[#1C1A17] flex items-center justify-center shadow-sm cursor-pointer"
+              aria-label={isMobileMenuOpen ? 'סגור תפריט ניווט' : 'פתח תפריט ניווט'}
+              aria-expanded={isMobileMenuOpen}
+            >
+              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
             <a 
               href={getWhatsAppLink()}
               target="_blank"
@@ -1175,6 +1240,27 @@ export default function App() {
             </a>
           </div>
         </div>
+
+        {isMobileMenuOpen && (
+          <nav className="md:hidden border-t border-[#EDE6DC] bg-[#FAF8F5] px-4 py-3 space-y-1 text-sm font-semibold text-[#575047]">
+            {[
+              { label: 'קולקציה', id: 'catalog' },
+              { label: 'היהלום המושלם', id: 'guide' },
+              { label: 'אודות', id: 'about' },
+              { label: 'שאלות נפוצות', id: 'faq' },
+              { label: 'יצירת קשר', id: 'contact' }
+            ].map(item => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => { scrollToSection(item.id); setIsMobileMenuOpen(false); }}
+                className="w-full text-right px-3 py-2.5 rounded-lg hover:bg-[#EFE9DF] hover:text-[#9E8255] transition-colors cursor-pointer"
+              >
+                {item.label}
+              </button>
+            ))}
+          </nav>
+        )}
       </header>
 
       {/* Hero Section עם רקע יהלומים מלא */}
