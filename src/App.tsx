@@ -19,7 +19,6 @@ import {
   ChevronDown,
   Sparkles,
   Award,
-  Layers,
   DollarSign,
   Package,
   MessageCircle,
