@@ -215,12 +215,14 @@ export default function App() {
   const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(false);
   const [selectedProductView, setSelectedProductView] = useState<DiamondProduct | null>(null);
 
+  // Dynamic Site Settings
   const [phoneText, setPhoneText] = useState('054-4847078');
   const [heroTitle, setHeroTitle] = useState('היהלומים הנדירים של בורסת היהלומים');
   const [heroSubTitle, setHeroSubTitle] = useState('חוויית בוטיק יוקרתית בבניין שמשון. רכישת יהלומים מלוטשים ותכשיטים בעיצוב אישי, ללא פערי תיווך, בדירוג הבינלאומי המוביל GIA / IGI.');
   const [aboutText, setAboutText] = useState('אנו מתמחים בייצור תכשיטי עילית בעיצוב אישי וברכישת יהלומים טבעיים ויהלומי מעבדה ישירות מחברי בורסת היהלומים ברמת גן, ללא פערי תיווך וללא עמלות מיותרות.');
   const [marqueeText, setMarqueeText] = useState(DEFAULT_MARQUEE_TEXT);
 
+  // Dynamic Carousel Slides
   const [carouselSlides, setCarouselSlides] = useState<CarouselSlide[]>(DEFAULT_CAROUSEL_SLIDES);
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
 
@@ -280,6 +282,7 @@ export default function App() {
     }
   };
 
+  // Carousel Auto Switcher
   useEffect(() => {
     if (carouselSlides.length === 0) return;
     const timer = setInterval(() => {
@@ -288,6 +291,7 @@ export default function App() {
     return () => clearInterval(timer);
   }, [carouselSlides]);
 
+  // Products & Filters State
   const [products, setProducts] = useState<DiamondProduct[]>(INITIAL_PRODUCTS);
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('all');
   const [selectedShape, setSelectedShape] = useState<string>('all');
@@ -298,11 +302,14 @@ export default function App() {
   const [priceRange, setPriceRange] = useState<number>(100000);
   const [minCarat, setMinCarat] = useState<number>(0.3);
 
+  // Responsive Drawers
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
+  // Admin Dashboard Tabs
   const [adminTab, setAdminTab] = useState<'products' | 'carousel' | 'content' | 'settings'>('products');
 
+  // Admin Auth States
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [authStep, setAuthStep] = useState<'credentials' | 'enroll_qr' | 'verify_code'>('credentials');
   const [emailInput, setEmailInput] = useState('');
@@ -313,6 +320,7 @@ export default function App() {
   const [loginError, setLoginError] = useState('');
   const [isLoadingAuth, setIsLoadingAuth] = useState(false);
 
+  // Product Editing/Adding States
   const [editingProduct, setEditingProduct] = useState<DiamondProduct | null>(null);
   const [uploadedImagePreview, setUploadedImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -332,6 +340,7 @@ export default function App() {
     status: 'available' as const
   });
 
+  // Carousel Slide Add State
   const [newSlide, setNewSlide] = useState({
     title: '',
     tag: '',
@@ -339,6 +348,35 @@ export default function App() {
   });
   const [newSlideImagePreview, setNewSlideImagePreview] = useState<string | null>(null);
   const slideFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto Logout after 15 minutes of inactivity (15 * 60 * 1000 ms)
+  useEffect(() => {
+    if (!isAdminAuthenticated) return;
+
+    let timeoutId: NodeJS.Timeout;
+    const INACTIVITY_LIMIT = 15 * 60 * 1000; // 15 Minutes
+
+    const resetTimer = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(async () => {
+        await supabase.auth.signOut();
+        setIsAdminAuthenticated(false);
+        setAuthStep('credentials');
+        setVerifyCode('');
+        alert('נותקת מהמערכת עקב חוסר פעילות במשך 15 דקות.');
+      }, INACTIVITY_LIMIT);
+    };
+
+    const activityEvents = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+    activityEvents.forEach(evt => window.addEventListener(evt, resetTimer));
+
+    resetTimer();
+
+    return () => {
+      clearTimeout(timeoutId);
+      activityEvents.forEach(evt => window.removeEventListener(evt, resetTimer));
+    };
+  }, [isAdminAuthenticated]);
 
   const navigateTo = (route: 'home' | 'shop' | 'about' | 'contactus' | 'admin', category?: ProductCategory) => {
     setCurrentRoute(route);
@@ -372,6 +410,7 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePop);
   }, []);
 
+  // Auth Session Check
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -725,6 +764,7 @@ export default function App() {
     }
   };
 
+  // Filtered Products
   const filteredProducts = products.filter(product => {
     const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
     const matchesShape = selectedShape === 'all' || product.shape === selectedShape;
@@ -777,7 +817,6 @@ export default function App() {
           
           {/* RIGHT SIDE ON MOBILE: BURGER BUTTON / DESKTOP: LOGO */}
           <div className="flex items-center gap-3">
-            {/* Mobile Burger Trigger on Right */}
             <button
               onClick={() => setIsMobileNavOpen(true)}
               className="md:hidden p-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6] text-[#141210]"
@@ -786,7 +825,6 @@ export default function App() {
               <Menu className="w-5 h-5" />
             </button>
 
-            {/* Desktop Brand Logo */}
             <div 
               onClick={() => navigateTo('home')} 
               className="hidden md:flex items-center gap-3 cursor-pointer group select-none"
@@ -875,7 +913,6 @@ export default function App() {
 
           {/* LEFT SIDE ON MOBILE: BRAND LOGO / DESKTOP: VIP BUTTON */}
           <div className="flex items-center gap-3">
-            {/* Mobile Brand Logo on Left */}
             <div 
               onClick={() => navigateTo('home')} 
               className="flex md:hidden items-center gap-2 cursor-pointer select-none"
@@ -893,7 +930,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Desktop VIP Phone Button */}
             <a
               href={`tel:${cleanPhone}`}
               className="hidden sm:flex items-center gap-2.5 bg-[#141210] text-[#D8C7B0] border border-[#B39359]/40 px-5 py-2.5 rounded-full text-xs font-semibold tracking-wider hover:bg-[#201D19] transition-all shadow-xs"
@@ -1055,7 +1091,7 @@ export default function App() {
             </div>
           </section>
 
-          {/* BEST SELLERS SHOWCASE (COMPACT & IMAGE FOCUS) */}
+          {/* BEST SELLERS SHOWCASE */}
           <section className="max-w-7xl mx-auto px-4 sm:px-8 py-12 sm:py-20 text-right">
             <div className="flex items-center justify-between mb-8 border-b border-[#EAE3D6] pb-4">
               <div>
@@ -1331,7 +1367,7 @@ export default function App() {
 
                         <div className="p-6 pt-0 flex items-center justify-between border-t border-[#FAF8F5] mt-3">
                           <div className="text-right">
-                            <span className="text-[10px] text-[#8F8171] block font-light">מחיר בורסה ישיר</span>
+                            <span className="text-[10px] text-[#8F8171] block font-light">מחיר ישיר</span>
                             <span className="text-lg font-serif font-bold text-[#141210]">
                               ₪{product.price.toLocaleString()}
                             </span>
@@ -1498,7 +1534,7 @@ export default function App() {
           <div className="text-center space-y-3">
             <span className="text-xs font-mono text-[#B39359] tracking-widest uppercase">פגישות וייעוץ אישי</span>
             <h1 className="text-3xl sm:text-5xl font-serif font-bold text-[#141210]">פגישה בבורסת היהלומים</h1>
-            <p className="text-xs sm:text-sm text-[#8F8171]">בניין שמשון, בורסת היהלומים רמת גן</p>
+            <p className="text-xs sm:text-sm text-[#8F8171]">בניין שמשון, בבורסת היהלומים רמת גן</p>
             <div className="w-12 h-0.5 bg-[#B39359] mx-auto mt-2" />
           </div>
 
