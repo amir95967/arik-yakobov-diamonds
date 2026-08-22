@@ -215,14 +215,12 @@ export default function App() {
   const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(false);
   const [selectedProductView, setSelectedProductView] = useState<DiamondProduct | null>(null);
 
-  // Dynamic Site Settings
   const [phoneText, setPhoneText] = useState('054-4847078');
   const [heroTitle, setHeroTitle] = useState('היהלומים הנדירים של בורסת היהלומים');
   const [heroSubTitle, setHeroSubTitle] = useState('חוויית בוטיק יוקרתית בבניין שמשון. רכישת יהלומים מלוטשים ותכשיטים בעיצוב אישי, ללא פערי תיווך, בדירוג הבינלאומי המוביל GIA / IGI.');
   const [aboutText, setAboutText] = useState('אנו מתמחים בייצור תכשיטי עילית בעיצוב אישי וברכישת יהלומים טבעיים ויהלומי מעבדה ישירות מחברי בורסת היהלומים ברמת גן, ללא פערי תיווך וללא עמלות מיותרות.');
   const [marqueeText, setMarqueeText] = useState(DEFAULT_MARQUEE_TEXT);
 
-  // Dynamic Carousel Slides
   const [carouselSlides, setCarouselSlides] = useState<CarouselSlide[]>(DEFAULT_CAROUSEL_SLIDES);
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
 
@@ -282,7 +280,6 @@ export default function App() {
     }
   };
 
-  // Carousel Auto Switcher
   useEffect(() => {
     if (carouselSlides.length === 0) return;
     const timer = setInterval(() => {
@@ -291,7 +288,6 @@ export default function App() {
     return () => clearInterval(timer);
   }, [carouselSlides]);
 
-  // Products & Filters State
   const [products, setProducts] = useState<DiamondProduct[]>(INITIAL_PRODUCTS);
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('all');
   const [selectedShape, setSelectedShape] = useState<string>('all');
@@ -302,14 +298,11 @@ export default function App() {
   const [priceRange, setPriceRange] = useState<number>(100000);
   const [minCarat, setMinCarat] = useState<number>(0.3);
 
-  // Responsive Drawers
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
-  // Admin Dashboard Tabs
   const [adminTab, setAdminTab] = useState<'products' | 'carousel' | 'content' | 'settings'>('products');
 
-  // Admin Auth States
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [authStep, setAuthStep] = useState<'credentials' | 'enroll_qr' | 'verify_code'>('credentials');
   const [emailInput, setEmailInput] = useState('');
@@ -320,7 +313,6 @@ export default function App() {
   const [loginError, setLoginError] = useState('');
   const [isLoadingAuth, setIsLoadingAuth] = useState(false);
 
-  // Product Editing/Adding States
   const [editingProduct, setEditingProduct] = useState<DiamondProduct | null>(null);
   const [uploadedImagePreview, setUploadedImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -340,7 +332,6 @@ export default function App() {
     status: 'available' as const
   });
 
-  // Carousel Slide Add State
   const [newSlide, setNewSlide] = useState({
     title: '',
     tag: '',
@@ -381,7 +372,6 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePop);
   }, []);
 
-  // Auth Session Check
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -511,7 +501,6 @@ export default function App() {
     setVerifyCode('');
   };
 
-  // Save Settings to Database
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -535,7 +524,6 @@ export default function App() {
     }
   };
 
-  // Carousel Handlers
   const handleAddSlide = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSlide.title || !newSlide.tag) {
@@ -597,7 +585,6 @@ export default function App() {
     alert('השקופית הוסרה בהצלחה מכל האתר!');
   };
 
-  // Product Handlers
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProduct.title || !newProduct.price) {
@@ -738,7 +725,6 @@ export default function App() {
     }
   };
 
-  // Filtered Products
   const filteredProducts = products.filter(product => {
     const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
     const matchesShape = selectedShape === 'all' || product.shape === selectedShape;
@@ -785,25 +771,37 @@ export default function App() {
         </div>
       </div>
 
-      {/* 2. LUXURY BOUTIQUE HEADER */}
+      {/* 2. LUXURY BOUTIQUE HEADER (MOBILE: BURGER ON RIGHT, LOGO ON LEFT) */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#EAE3D6] transition-all">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 h-20 sm:h-24 flex items-center justify-between">
           
-          {/* LOGO */}
-          <div 
-            onClick={() => navigateTo('home')} 
-            className="flex items-center gap-3 cursor-pointer group select-none"
-          >
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#1A1815] flex items-center justify-center text-[#B39359] border border-[#B39359]/30 transition-transform duration-300 group-hover:scale-105 shadow-xs">
-              <Diamond className="w-5 h-5 stroke-[1.5]" />
-            </div>
-            <div className="flex flex-col text-right">
-              <span className="text-lg sm:text-2xl font-serif font-bold tracking-wider text-[#141210] leading-none">
-                ARIK YAKOBOV
-              </span>
-              <span className="text-[8px] sm:text-[9px] tracking-[0.3em] text-[#8F8171] uppercase font-semibold mt-1">
-                HAUTE JOAILLERIE & DIAMONDS
-              </span>
+          {/* RIGHT SIDE ON MOBILE: BURGER BUTTON / DESKTOP: LOGO */}
+          <div className="flex items-center gap-3">
+            {/* Mobile Burger Trigger on Right */}
+            <button
+              onClick={() => setIsMobileNavOpen(true)}
+              className="md:hidden p-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6] text-[#141210]"
+              aria-label="תפריט"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+
+            {/* Desktop Brand Logo */}
+            <div 
+              onClick={() => navigateTo('home')} 
+              className="hidden md:flex items-center gap-3 cursor-pointer group select-none"
+            >
+              <div className="w-11 h-11 rounded-full bg-[#1A1815] flex items-center justify-center text-[#B39359] border border-[#B39359]/30 transition-transform duration-300 group-hover:scale-105 shadow-xs">
+                <Diamond className="w-5 h-5 stroke-[1.5]" />
+              </div>
+              <div className="flex flex-col text-right">
+                <span className="text-2xl font-serif font-bold tracking-wider text-[#141210] leading-none">
+                  ARIK YAKOBOV
+                </span>
+                <span className="text-[9px] tracking-[0.2em] text-[#8F8171] font-medium mt-1">
+                  ייצור תכשיטים | Lab & Natural Diamonds
+                </span>
+              </div>
             </div>
           </div>
 
@@ -875,8 +873,27 @@ export default function App() {
             </button>
           </nav>
 
-          {/* VIP BUTTON & MOBILE MENU */}
+          {/* LEFT SIDE ON MOBILE: BRAND LOGO / DESKTOP: VIP BUTTON */}
           <div className="flex items-center gap-3">
+            {/* Mobile Brand Logo on Left */}
+            <div 
+              onClick={() => navigateTo('home')} 
+              className="flex md:hidden items-center gap-2 cursor-pointer select-none"
+            >
+              <div className="flex flex-col text-left">
+                <span className="text-base font-serif font-bold tracking-wider text-[#141210] leading-none">
+                  ARIK YAKOBOV
+                </span>
+                <span className="text-[7.5px] tracking-tight text-[#8F8171] mt-0.5">
+                  ייצור תכשיטים | יהלומים
+                </span>
+              </div>
+              <div className="w-8 h-8 rounded-full bg-[#1A1815] flex items-center justify-center text-[#B39359] border border-[#B39359]/30 shadow-xs">
+                <Diamond className="w-4 h-4 stroke-[1.5]" />
+              </div>
+            </div>
+
+            {/* Desktop VIP Phone Button */}
             <a
               href={`tel:${cleanPhone}`}
               className="hidden sm:flex items-center gap-2.5 bg-[#141210] text-[#D8C7B0] border border-[#B39359]/40 px-5 py-2.5 rounded-full text-xs font-semibold tracking-wider hover:bg-[#201D19] transition-all shadow-xs"
@@ -884,14 +901,6 @@ export default function App() {
               <Phone className="w-3.5 h-3.5 text-[#B39359]" />
               <span>{phoneText}</span>
             </a>
-
-            <button
-              onClick={() => setIsMobileNavOpen(true)}
-              className="md:hidden p-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6] text-[#141210]"
-              aria-label="תפריט"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
           </div>
         </div>
       </header>
@@ -1046,88 +1055,49 @@ export default function App() {
             </div>
           </section>
 
-          {/* BEST SELLERS SHOWCASE */}
-          <section className="max-w-7xl mx-auto px-4 sm:px-8 py-16 sm:py-24 text-right">
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-12 border-b border-[#EAE3D6] pb-6">
+          {/* BEST SELLERS SHOWCASE (COMPACT & IMAGE FOCUS) */}
+          <section className="max-w-7xl mx-auto px-4 sm:px-8 py-12 sm:py-20 text-right">
+            <div className="flex items-center justify-between mb-8 border-b border-[#EAE3D6] pb-4">
               <div>
-                <span className="text-xs font-mono text-[#B39359] tracking-widest uppercase">ICONIC DESIGNS</span>
-                <h2 className="font-serif text-2xl sm:text-4xl font-bold text-[#141210] mt-1">BEST SELLERS | הפריטים הנבחרים</h2>
+                <span className="text-[11px] font-mono text-[#B39359] tracking-widest uppercase">ICONIC DESIGNS</span>
+                <h2 className="font-serif text-xl sm:text-3xl font-bold text-[#141210]">BEST SELLERS</h2>
               </div>
               <button 
                 onClick={() => navigateTo('shop')}
-                className="text-xs font-bold text-[#B39359] hover:underline flex items-center gap-1.5"
+                className="text-xs font-bold text-[#B39359] hover:underline flex items-center gap-1"
               >
-                <span>צפייה בכל הדגמים</span>
-                <ArrowRight className="w-4 h-4 rotate-180" />
+                <span>כל הדגמים</span>
+                <ArrowRight className="w-3.5 h-3.5 rotate-180" />
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {products.slice(0, 3).map(product => {
-                const shapeObj = SHAPES_DATA.find(s => s.value === product.shape);
-                return (
-                  <div 
-                    key={product.id}
-                    onClick={() => setSelectedProductView(product)}
-                    className="bg-white rounded-3xl border border-[#EAE3D6] overflow-hidden shadow-xs hover:shadow-2xl transition-all duration-500 group flex flex-col justify-between cursor-pointer"
-                  >
-                    <div>
-                      <div className="relative aspect-4/5 overflow-hidden bg-[#FAF8F5]">
-                        <img 
-                          src={product.image} 
-                          alt={product.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
-                        />
-                        <div className="absolute top-4 right-4 flex items-center gap-1.5">
-                          <span className="px-3 py-1 rounded-full bg-white/95 backdrop-blur-md text-[11px] font-bold text-[#141210] shadow-xs">
-                            {shapeObj ? shapeObj.labelHe : product.shape}
-                          </span>
-                          {product.diamond_type && (
-                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold text-white tracking-wider ${product.diamond_type === 'Natural' ? 'bg-[#141210]' : 'bg-[#B39359]'}`}>
-                              {product.diamond_type === 'Natural' ? 'טבעי' : 'מעבדה'}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="p-6 space-y-3">
-                        <div className="flex items-center justify-between text-[11px] text-[#8F8171]">
-                          <span>{product.carat} קראט</span>
-                          <span>{product.certificate} Certificate</span>
-                        </div>
-                        <h3 className="font-serif font-bold text-base text-[#141210] line-clamp-2 leading-snug group-hover:text-[#B39359] transition-colors">
-                          {product.title}
-                        </h3>
-                        <div className="grid grid-cols-3 gap-2 pt-2 text-center text-[10px]">
-                          <div className="bg-[#FAF8F5] border border-[#EAE3D6] rounded-xl py-1.5">
-                            <span className="text-[#8F8171] block">צבע</span>
-                            <span className="font-bold text-[#141210]">{product.color}</span>
-                          </div>
-                          <div className="bg-[#FAF8F5] border border-[#EAE3D6] rounded-xl py-1.5">
-                            <span className="text-[#8F8171] block">ניקיון</span>
-                            <span className="font-bold text-[#141210]">{product.clarity}</span>
-                          </div>
-                          <div className="bg-[#FAF8F5] border border-[#EAE3D6] rounded-xl py-1.5">
-                            <span className="text-[#8F8171] block">חיתוך</span>
-                            <span className="font-bold text-[#141210]">{product.cut}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-6 pt-0 flex items-center justify-between border-t border-[#FAF8F5] mt-3">
-                      <div>
-                        <span className="text-[10px] text-[#8F8171] block">מחיר ישיר</span>
-                        <span className="text-lg font-serif font-bold text-[#141210]">₪{product.price.toLocaleString()}</span>
-                      </div>
-                      <div className="px-4 py-2 rounded-full bg-[#FAF8F5] border border-[#EAE3D6] text-[#B39359] group-hover:bg-[#141210] group-hover:text-white transition-all text-xs font-semibold flex items-center gap-1">
-                        <span>פרטים ומדידה</span>
-                        <ArrowRight className="w-3.5 h-3.5 rotate-180" />
-                      </div>
-                    </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6">
+              {products.slice(0, 3).map(product => (
+                <div 
+                  key={product.id}
+                  onClick={() => setSelectedProductView(product)}
+                  className="bg-white rounded-2xl sm:rounded-3xl border border-[#EAE3D6] overflow-hidden shadow-xs hover:shadow-xl transition-all duration-300 group cursor-pointer flex flex-col justify-between"
+                >
+                  <div className="relative aspect-square overflow-hidden bg-[#FAF8F5]">
+                    <img 
+                      src={product.image} 
+                      alt={product.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                    />
+                    {product.diamond_type && (
+                      <span className={`absolute top-3 right-3 px-2 py-0.5 rounded-full text-[9px] font-bold text-white ${product.diamond_type === 'Natural' ? 'bg-[#141210]' : 'bg-[#B39359]'}`}>
+                        {product.diamond_type === 'Natural' ? 'טבעי' : 'מעבדה'}
+                      </span>
+                    )}
                   </div>
-                );
-              })}
+
+                  <div className="p-3 sm:p-4 text-center">
+                    <h3 className="font-serif font-bold text-xs sm:text-sm text-[#141210] truncate group-hover:text-[#B39359] transition-colors">
+                      {product.title}
+                    </h3>
+                  </div>
+                </div>
+              ))}
             </div>
           </section>
         </main>
@@ -1964,7 +1934,7 @@ export default function App() {
                             ref={fileInputRef}
                             onChange={(e) => {
                               if (e.target.files?.[0]) {
-                                setUploadedImagePreview(URL.createObjectURL(e.target.files[0]));
+                                setNewSlideImagePreview(URL.createObjectURL(e.target.files[0]));
                               }
                             }}
                             className="hidden"
