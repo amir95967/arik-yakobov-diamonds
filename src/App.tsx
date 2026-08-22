@@ -1,3 +1,4 @@
+cat << 'EOF' > src/App.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Diamond, 
@@ -156,11 +157,9 @@ export default function App() {
   const [priceRange, setPriceRange] = useState<number>(100000);
   const [selectedProduct, setSelectedProduct] = useState<DiamondProduct | null>(null);
 
-  // Responsive Drawer & Mobile Filter States
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
-  // Admin & Auth States
   const [isAdminView, setIsAdminView] = useState(false);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [authStep, setAuthStep] = useState<'credentials' | 'enroll_qr' | 'verify_code'>('credentials');
@@ -172,7 +171,6 @@ export default function App() {
   const [loginError, setLoginError] = useState('');
   const [isLoadingAuth, setIsLoadingAuth] = useState(false);
 
-  // Admin Management States
   const [editingProduct, setEditingProduct] = useState<DiamondProduct | null>(null);
   const [uploadedImagePreview, setUploadedImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -192,7 +190,6 @@ export default function App() {
     status: 'available' as const
   });
 
-  // Check URL routing for admin
   useEffect(() => {
     const handleLocation = () => {
       const path = window.location.pathname;
@@ -212,7 +209,6 @@ export default function App() {
     };
   }, []);
 
-  // Fetch products from Supabase
   useEffect(() => {
     fetchProducts();
   }, []);
@@ -232,7 +228,6 @@ export default function App() {
     }
   };
 
-  // Auth session check
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -244,7 +239,6 @@ export default function App() {
       if (mfaData && mfaData.currentLevel === 'aal2') {
         setIsAdminAuthenticated(true);
       } else if (mfaData && mfaData.nextLevel === 'aal2') {
-        // needs MFA verification
         const { data: factors } = await supabase.auth.mfa.listFactors();
         const verifiedTotp = factors?.totp.find(f => f.status === 'verified');
         if (verifiedTotp) {
@@ -258,7 +252,6 @@ export default function App() {
     checkSession();
   }, []);
 
-  // Handle Login with mandatory 2FA setup on first login
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoadingAuth(true);
@@ -283,7 +276,6 @@ export default function App() {
         setMfaFactorId(verifiedTotp.id);
         setAuthStep('verify_code');
       } else {
-        // First login -> enforce 2FA setup
         if (factorsData?.totp) {
           for (const factor of factorsData.totp) {
             if (factor.status === 'unverified') {
@@ -365,7 +357,6 @@ export default function App() {
     setVerifyCode('');
   };
 
-  // Add Product
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProduct.sku || !newProduct.title || !newProduct.price) {
@@ -433,7 +424,6 @@ export default function App() {
     }
   };
 
-  // Update Product
   const handleUpdateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProduct) return;
@@ -492,7 +482,6 @@ export default function App() {
     }
   };
 
-  // Delete Product
   const handleDelete = async (id: string) => {
     if (!window.confirm('האם למחוק פריט זה מהאתר?')) return;
     const { error } = await supabase.from('products').delete().eq('id', id);
@@ -504,7 +493,6 @@ export default function App() {
     }
   };
 
-  // Status Change
   const handleStatusChange = async (id: string, status: 'available' | 'reserved' | 'sold') => {
     const { error } = await supabase.from('products').update({ status }).eq('id', id);
     if (!error) {
@@ -512,7 +500,6 @@ export default function App() {
     }
   };
 
-  // Filtered Products
   const filteredProducts = products.filter(product => {
     const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
     const matchesShape = selectedShape === 'all' || product.shape === selectedShape;
@@ -553,7 +540,6 @@ export default function App() {
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#EDE6DC] transition-all">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           
-          {/* Mobile Menu Trigger & Mobile Filter Trigger */}
           <div className="flex items-center gap-2 md:hidden">
             <button
               onClick={() => setIsMobileNavOpen(true)}
@@ -574,7 +560,6 @@ export default function App() {
             )}
           </div>
 
-          {/* Brand Logo */}
           <div 
             onClick={() => {
               setIsAdminView(false);
@@ -593,7 +578,6 @@ export default function App() {
             </span>
           </div>
 
-          {/* Desktop Navigation Links */}
           <nav className="hidden md:flex items-center gap-8 text-xs font-medium tracking-wider uppercase text-[#575047]">
             {CATEGORIES_DATA.map(cat => (
               <button
@@ -611,7 +595,6 @@ export default function App() {
             ))}
           </nav>
 
-          {/* Action Header Icons */}
           <div className="flex items-center gap-3">
             <a
               href="https://wa.me/972500000000?text=שלום%20אריק,%20אשמח%20לייעוץ%20בנוגע%20ליהלומים"
@@ -639,7 +622,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* Mobile Drawer Navigation (Burger Menu) */}
+      {/* Mobile Drawer Navigation */}
       {isMobileNavOpen && (
         <div className="fixed inset-0 z-50 flex">
           <div 
@@ -709,18 +692,14 @@ export default function App() {
         </div>
       )}
 
-      {/* Main Content View Switcher */}
       {isAdminView ? (
-        /* ================= ADMIN VIEW ================= */
         <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
           {!isAdminAuthenticated ? (
-            /* Admin Auth Box */
             <div className="max-w-md mx-auto my-12 p-8 rounded-3xl bg-white border border-[#EDE6DC] shadow-xl text-center space-y-6">
               <div className="w-14 h-14 mx-auto rounded-full bg-[#F4EFE6] flex items-center justify-center text-[#9E8255]">
                 <Lock className="w-6 h-6" />
               </div>
 
-              {/* Step 1: Password Login */}
               {authStep === 'credentials' && (
                 <>
                   <div>
@@ -768,7 +747,6 @@ export default function App() {
                 </>
               )}
 
-              {/* Step 2: First Time Mandatory 2FA QR Enrollment */}
               {authStep === 'enroll_qr' && (
                 <>
                   <div>
@@ -809,7 +787,6 @@ export default function App() {
                 </>
               )}
 
-              {/* Step 3: Regular 2FA Verification */}
               {authStep === 'verify_code' && (
                 <>
                   <div>
@@ -843,7 +820,6 @@ export default function App() {
               )}
             </div>
           ) : (
-            /* Admin Dashboard Content */
             <div className="space-y-8">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-[#EDE6DC] shadow-xs">
                 <div>
@@ -1055,7 +1031,7 @@ export default function App() {
                 </form>
               </div>
 
-              {/* Products Table (Desktop & Mobile Friendly Cards) */}
+              {/* Products Table (Desktop & Mobile Cards) */}
               <div className="bg-white rounded-3xl border border-[#EDE6DC] shadow-xs overflow-hidden">
                 <div className="p-6 border-b border-[#EDE6DC] flex justify-between items-center">
                   <h3 className="font-serif font-bold text-base text-[#1C1A17]">
@@ -1063,7 +1039,6 @@ export default function App() {
                   </h3>
                 </div>
 
-                {/* Desktop Table View */}
                 <div className="hidden lg:block overflow-x-auto">
                   <table className="w-full text-right text-xs">
                     <thead className="bg-[#FAF8F5] text-[#8C8275] border-b border-[#EDE6DC]">
@@ -1140,7 +1115,7 @@ export default function App() {
                   </table>
                 </div>
 
-                {/* Mobile Cards View for Products */}
+                {/* Mobile Cards View */}
                 <div className="block lg:hidden divide-y divide-[#EDE6DC]">
                   {products.map(p => {
                     const shapeObj = SHAPES_DATA.find(s => s.value === p.shape);
@@ -1326,7 +1301,6 @@ export default function App() {
                     </select>
                   </div>
 
-                  {/* Edit Image Replacement */}
                   <div className="sm:col-span-2 p-3 bg-[#FAF8F5] border border-[#EDE6DC] rounded-2xl flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                       <img 
@@ -1383,10 +1357,8 @@ export default function App() {
           )}
         </main>
       ) : (
-        /* ================= PUBLIC STOREFRONT VIEW ================= */
         <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
           
-          {/* Hero Banner Section */}
           <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-[#1C1A17] via-[#2A2622] to-[#1C1A17] text-white p-8 sm:p-12 mb-10 border border-[#332F2A] shadow-xl">
             <div className="relative z-10 max-w-2xl space-y-4">
               <span className="text-[#C5A880] text-xs font-semibold tracking-[0.2em] uppercase">
@@ -1404,10 +1376,9 @@ export default function App() {
             </div>
           </div>
 
-          {/* Main Layout: Right Filter Sidebar + Left Product Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
             
-            {/* RIGHT SIDEBAR: Filters (Desktop View) */}
+            {/* RIGHT SIDEBAR: Filters */}
             <aside className="hidden lg:block lg:col-span-1 bg-white p-6 rounded-3xl border border-[#EDE6DC] shadow-xs space-y-6 sticky top-28">
               <div className="flex items-center justify-between border-b border-[#EDE6DC] pb-4">
                 <div className="flex items-center gap-2">
@@ -1429,7 +1400,6 @@ export default function App() {
                 )}
               </div>
 
-              {/* Search Box */}
               <div className="space-y-2">
                 <label className="block text-xs font-semibold text-[#575047]">חיפוש חופשי / מק"ט</label>
                 <div className="relative">
@@ -1444,7 +1414,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Category Filter */}
               <div className="space-y-2">
                 <label className="block text-xs font-semibold text-[#575047]">קטגוריה</label>
                 <div className="space-y-1">
@@ -1465,7 +1434,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Diamond Shapes Filter (Hebrew Labels with Marquise & Shapes) */}
               <div className="space-y-2">
                 <label className="block text-xs font-semibold text-[#575047]">צורת חיתוך היהלום</label>
                 <div className="grid grid-cols-2 gap-1.5">
@@ -1498,7 +1466,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Price Range Filter */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center text-xs">
                   <span className="font-semibold text-[#575047]">עד תקציב:</span>
@@ -1519,7 +1486,6 @@ export default function App() {
             {/* LEFT / CENTER: Products Grid */}
             <div className="lg:col-span-3 space-y-6">
               
-              {/* Active Filter Chips & Results Count */}
               <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-[#EDE6DC]">
                 <div className="flex items-center gap-2 text-xs text-[#575047]">
                   <span className="font-bold text-[#1C1A17]">{filteredProducts.length}</span>
@@ -1542,7 +1508,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Products Cards Grid */}
               {filteredProducts.length === 0 ? (
                 <div className="bg-white rounded-3xl border border-[#EDE6DC] p-12 text-center space-y-4">
                   <Diamond className="w-12 h-12 text-[#D5C7B2] mx-auto" />
@@ -1572,7 +1537,6 @@ export default function App() {
                         className="bg-white rounded-3xl border border-[#EDE6DC] overflow-hidden shadow-xs hover:shadow-xl transition-all duration-300 group flex flex-col justify-between"
                       >
                         <div>
-                          {/* Card Image */}
                           <div className="relative aspect-square overflow-hidden bg-[#F4EFE6]">
                             <img
                               src={product.image}
@@ -1580,7 +1544,6 @@ export default function App() {
                               className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                             />
                             
-                            {/* Shape & Certificate Tag */}
                             <div className="absolute top-3 right-3 flex items-center gap-1.5">
                               <span className="px-3 py-1 rounded-full bg-white/95 backdrop-blur-xs text-[11px] font-bold text-[#1C1A17] shadow-xs">
                                 {shapeObj ? shapeObj.labelHe : product.shape}
@@ -1592,7 +1555,6 @@ export default function App() {
                               )}
                             </div>
 
-                            {/* Status Overlay if not available */}
                             {product.status !== 'available' && (
                               <div className="absolute inset-0 bg-black/40 backdrop-blur-2xs flex items-center justify-center">
                                 <span className="px-4 py-1.5 rounded-full bg-white text-[#1C1A17] text-xs font-bold uppercase tracking-wider">
@@ -1602,7 +1564,6 @@ export default function App() {
                             )}
                           </div>
 
-                          {/* Card Body */}
                           <div className="p-5 space-y-3">
                             <div className="flex items-center justify-between text-[11px] text-[#8C8275]">
                               <span className="font-mono">{product.sku}</span>
@@ -1613,7 +1574,6 @@ export default function App() {
                               {product.title}
                             </h3>
 
-                            {/* 4Cs Badges */}
                             <div className="grid grid-cols-3 gap-1.5 pt-1 text-center text-[10px]">
                               <div className="bg-[#FAF8F5] border border-[#EDE6DC] rounded-lg py-1">
                                 <span className="text-[#8C8275] block">צבע</span>
@@ -1631,7 +1591,6 @@ export default function App() {
                           </div>
                         </div>
 
-                        {/* Card Footer */}
                         <div className="p-5 pt-0 flex items-center justify-between border-t border-[#FAF8F5] mt-2">
                           <div>
                             <span className="text-[10px] text-[#8C8275] block">מחיר מיוחד</span>
@@ -1660,7 +1619,7 @@ export default function App() {
         </main>
       )}
 
-      {/* Mobile Filters Drawer (Popup from Bottom) */}
+      {/* Mobile Filters Drawer */}
       {isMobileFilterOpen && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end lg:hidden">
           <div 
@@ -1681,7 +1640,6 @@ export default function App() {
               </button>
             </div>
 
-            {/* Diamond Shapes Filter (Hebrew in Mobile Drawer) */}
             <div className="space-y-2">
               <label className="block text-xs font-bold text-[#575047]">צורת חיתוך היהלום</label>
               <div className="grid grid-cols-3 gap-2">
@@ -1712,7 +1670,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Price Filter in Mobile */}
             <div className="space-y-2">
               <div className="flex justify-between text-xs font-semibold">
                 <span>עד תקציב:</span>
@@ -1790,3 +1747,4 @@ export default function App() {
     </div>
   );
 }
+EOF
