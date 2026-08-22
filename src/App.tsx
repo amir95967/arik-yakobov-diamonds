@@ -215,10 +215,10 @@ export default function App() {
   const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(false);
   const [selectedProductView, setSelectedProductView] = useState<DiamondProduct | null>(null);
 
-  // Dynamic Site Settings from Supabase
+  // Dynamic Site Settings
   const [phoneText, setPhoneText] = useState('054-4847078');
   const [heroTitle, setHeroTitle] = useState('היהלומים הנדירים של בורסת היהלומים');
-  const [heroSubTitle, setHeroSubTitle] = useState('חוויית בוטיק יוקרתית בחדר העסקאות בבניין שמשון. רכישת יהלומים מלוטשים ותכשיטים בעיצוב אישי, ללא פערי תיווך, בדירוג הבינלאומי המוביל GIA / IGI.');
+  const [heroSubTitle, setHeroSubTitle] = useState('חוויית בוטיק יוקרתית בבניין שמשון. רכישת יהלומים מלוטשים ותכשיטים בעיצוב אישי, ללא פערי תיווך, בדירוג הבינלאומי המוביל GIA / IGI.');
   const [aboutText, setAboutText] = useState('אנו מתמחים בייצור תכשיטי עילית בעיצוב אישי וברכישת יהלומים טבעיים ויהלומי מעבדה ישירות מחברי בורסת היהלומים ברמת גן, ללא פערי תיווך וללא עמלות מיותרות.');
   const [marqueeText, setMarqueeText] = useState(DEFAULT_MARQUEE_TEXT);
 
@@ -226,7 +226,6 @@ export default function App() {
   const [carouselSlides, setCarouselSlides] = useState<CarouselSlide[]>(DEFAULT_CAROUSEL_SLIDES);
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
 
-  // Fetch Settings and Carousel from Supabase on Load
   useEffect(() => {
     fetchSiteSettings();
     fetchCarouselSlides();
@@ -292,7 +291,7 @@ export default function App() {
     return () => clearInterval(timer);
   }, [carouselSlides]);
 
-  // Products State
+  // Products & Filters State
   const [products, setProducts] = useState<DiamondProduct[]>(INITIAL_PRODUCTS);
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('all');
   const [selectedShape, setSelectedShape] = useState<string>('all');
@@ -512,7 +511,7 @@ export default function App() {
     setVerifyCode('');
   };
 
-  // Save Settings to Supabase
+  // Save Settings to Database
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -529,7 +528,7 @@ export default function App() {
       if (error) {
         alert(`שגיאה בשמירת הגדרות: ${error.message}`);
       } else {
-        alert('כל התכנים והטקסטים נשמרו בהצלחה ב-Supabase ומעודכנים כעת בכל האתר!');
+        alert('כל התכנים והטקסטים נשמרו בהצלחה ומעודכנים כעת בכל האתר!');
       }
     } catch (err) {
       alert('אירעה שגיאה בעת שמירת ההגדרות.');
@@ -579,7 +578,7 @@ export default function App() {
       setNewSlide({ title: '', tag: '', image: '' });
       setNewSlideImagePreview(null);
       if (slideFileInputRef.current) slideFileInputRef.current.value = '';
-      alert('שקופית חדשה נוספה ונשמרה ב-Supabase!');
+      alert('שקופית חדשה נוספה בהצלחה!');
     } else {
       setCarouselSlides(prev => [...prev, slideObj]);
       alert('שקופית נוספה בהצלחה!');
@@ -598,7 +597,7 @@ export default function App() {
     alert('השקופית הוסרה בהצלחה מכל האתר!');
   };
 
-  // Product Add / Update Handlers
+  // Product Handlers
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProduct.title || !newProduct.price) {
@@ -644,8 +643,7 @@ export default function App() {
     ]).select();
 
     if (error) {
-      console.error(error);
-      alert('שגיאה בשמירת הפריט ב-Supabase');
+      alert(`שגיאה בשמירת הפריט: ${error.message}`);
     } else if (data) {
       setProducts(prev => [data[0], ...prev]);
       setNewProduct({
@@ -719,7 +717,6 @@ export default function App() {
         alert('הפריט עודכן בהצלחה!');
       }
     } catch (err: any) {
-      console.error(err);
       alert('שגיאה בעדכון הפריט');
     }
   };
@@ -728,7 +725,6 @@ export default function App() {
     if (!window.confirm('האם למחוק פריט זה מהגלריה?')) return;
     const { error } = await supabase.from('products').delete().eq('id', id);
     if (error) {
-      console.error(error);
       alert('שגיאה במחיקת הפריט');
     } else {
       setProducts(prev => prev.filter(p => p.id !== id));
@@ -879,7 +875,7 @@ export default function App() {
             </button>
           </nav>
 
-          {/* VIP BOOKING BUTTON & MOBILE MENU */}
+          {/* VIP BUTTON & MOBILE MENU */}
           <div className="flex items-center gap-3">
             <a
               href={`tel:${cleanPhone}`}
@@ -980,9 +976,9 @@ export default function App() {
         <main className="flex-1">
           
           {/* HERO SECTION */}
-          <section className="relative bg-[#141210] text-white py-20 sm:py-32 px-4 sm:px-8 border-b border-[#282420] overflow-hidden">
-            <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-              <div className="lg:col-span-7 space-y-6 text-right z-10">
+          <section className="relative bg-[#141210] text-white py-16 sm:py-28 px-4 sm:px-8 border-b border-[#282420] overflow-hidden">
+            <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 sm:gap-12 items-center">
+              <div className="lg:col-span-7 space-y-5 sm:space-y-6 text-right z-10">
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#201D19] border border-[#B39359]/30 text-[#D8C7B0] text-xs font-medium">
                   <Sparkles className="w-3.5 h-3.5 text-[#B39359]" />
                   <span>ייצור תכשיטים בעיצוב אישי | Lab & Natural Diamonds</span>
@@ -993,18 +989,18 @@ export default function App() {
                 <p className="text-xs sm:text-base text-[#D8C7B0]/90 max-w-xl leading-relaxed font-light">
                   {heroSubTitle}
                 </p>
-                <div className="flex flex-wrap gap-4 pt-4">
+                <div className="flex flex-wrap gap-3 sm:gap-4 pt-2 sm:pt-4">
                   <button
                     onClick={() => navigateTo('shop')}
-                    className="px-8 py-4 bg-[#B39359] text-[#141210] font-bold rounded-full text-xs uppercase tracking-widest hover:bg-[#a18349] transition-all shadow-lg hover:shadow-[#B39359]/20"
+                    className="px-8 py-3.5 sm:py-4 bg-[#B39359] text-[#141210] font-bold rounded-full text-xs uppercase tracking-widest hover:bg-[#a18349] transition-all shadow-lg"
                   >
                     לצפייה בקולקציה
                   </button>
                   <button
                     onClick={() => navigateTo('contactus')}
-                    className="px-7 py-4 bg-transparent border border-[#B39359]/50 text-[#D8C7B0] font-medium rounded-full text-xs uppercase tracking-wider hover:bg-[#201D19] transition-all"
+                    className="px-7 py-3.5 sm:py-4 bg-transparent border border-[#B39359]/50 text-[#D8C7B0] font-medium rounded-full text-xs uppercase tracking-wider hover:bg-[#201D19] transition-all"
                   >
-                    תיאום פגישה אישית בבורסה
+                    תיאום פגישה בבורסה
                   </button>
                 </div>
               </div>
@@ -1026,7 +1022,7 @@ export default function App() {
                         className="w-full h-full object-cover scale-105"
                       />
                       
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-end p-8 text-right">
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-end p-6 sm:p-8 text-right">
                         <span className="text-[#B39359] text-[11px] font-mono tracking-widest uppercase">{slide.tag}</span>
                         <h3 className="font-serif font-bold text-white text-lg sm:text-xl mt-1">{slide.title}</h3>
                         <p className="text-[11px] text-[#D8C7B0]/80 mt-0.5">בורסת היהלומים רמת גן, בניין שמשון</p>
@@ -1050,30 +1046,88 @@ export default function App() {
             </div>
           </section>
 
-          {/* SHOWROOM CATEGORIES */}
-          <section className="max-w-7xl mx-auto px-4 sm:px-8 py-16 sm:py-24">
-            <div className="text-center space-y-3 mb-12">
-              <span className="text-xs font-mono text-[#B39359] tracking-widest uppercase">קטלוג נבחר</span>
-              <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#141210]">קולקציות הבוטיק</h2>
-              <div className="w-12 h-0.5 bg-[#B39359] mx-auto mt-2" />
+          {/* BEST SELLERS SHOWCASE */}
+          <section className="max-w-7xl mx-auto px-4 sm:px-8 py-16 sm:py-24 text-right">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-12 border-b border-[#EAE3D6] pb-6">
+              <div>
+                <span className="text-xs font-mono text-[#B39359] tracking-widest uppercase">ICONIC DESIGNS</span>
+                <h2 className="font-serif text-2xl sm:text-4xl font-bold text-[#141210] mt-1">BEST SELLERS | הפריטים הנבחרים</h2>
+              </div>
+              <button 
+                onClick={() => navigateTo('shop')}
+                className="text-xs font-bold text-[#B39359] hover:underline flex items-center gap-1.5"
+              >
+                <span>צפייה בכל הדגמים</span>
+                <ArrowRight className="w-4 h-4 rotate-180" />
+              </button>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
-              {CATEGORIES_DATA.filter(c => c.value !== 'all').map(cat => (
-                <div
-                  key={cat.value}
-                  onClick={() => navigateTo('shop', cat.value)}
-                  className="bg-white p-6 rounded-2xl border border-[#EAE3D6] text-center hover:border-[#B39359] hover:shadow-lg transition-all duration-300 cursor-pointer group flex flex-col justify-between"
-                >
-                  <div className="w-12 h-12 mx-auto rounded-full bg-[#FAF8F5] border border-[#EAE3D6] flex items-center justify-center text-[#B39359] mb-4 group-hover:bg-[#141210] group-hover:border-[#B39359] transition-colors">
-                    <Diamond className="w-5 h-5 stroke-[1.5]" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {products.slice(0, 3).map(product => {
+                const shapeObj = SHAPES_DATA.find(s => s.value === product.shape);
+                return (
+                  <div 
+                    key={product.id}
+                    onClick={() => setSelectedProductView(product)}
+                    className="bg-white rounded-3xl border border-[#EAE3D6] overflow-hidden shadow-xs hover:shadow-2xl transition-all duration-500 group flex flex-col justify-between cursor-pointer"
+                  >
+                    <div>
+                      <div className="relative aspect-4/5 overflow-hidden bg-[#FAF8F5]">
+                        <img 
+                          src={product.image} 
+                          alt={product.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
+                        />
+                        <div className="absolute top-4 right-4 flex items-center gap-1.5">
+                          <span className="px-3 py-1 rounded-full bg-white/95 backdrop-blur-md text-[11px] font-bold text-[#141210] shadow-xs">
+                            {shapeObj ? shapeObj.labelHe : product.shape}
+                          </span>
+                          {product.diamond_type && (
+                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold text-white tracking-wider ${product.diamond_type === 'Natural' ? 'bg-[#141210]' : 'bg-[#B39359]'}`}>
+                              {product.diamond_type === 'Natural' ? 'טבעי' : 'מעבדה'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="p-6 space-y-3">
+                        <div className="flex items-center justify-between text-[11px] text-[#8F8171]">
+                          <span>{product.carat} קראט</span>
+                          <span>{product.certificate} Certificate</span>
+                        </div>
+                        <h3 className="font-serif font-bold text-base text-[#141210] line-clamp-2 leading-snug group-hover:text-[#B39359] transition-colors">
+                          {product.title}
+                        </h3>
+                        <div className="grid grid-cols-3 gap-2 pt-2 text-center text-[10px]">
+                          <div className="bg-[#FAF8F5] border border-[#EAE3D6] rounded-xl py-1.5">
+                            <span className="text-[#8F8171] block">צבע</span>
+                            <span className="font-bold text-[#141210]">{product.color}</span>
+                          </div>
+                          <div className="bg-[#FAF8F5] border border-[#EAE3D6] rounded-xl py-1.5">
+                            <span className="text-[#8F8171] block">ניקיון</span>
+                            <span className="font-bold text-[#141210]">{product.clarity}</span>
+                          </div>
+                          <div className="bg-[#FAF8F5] border border-[#EAE3D6] rounded-xl py-1.5">
+                            <span className="text-[#8F8171] block">חיתוך</span>
+                            <span className="font-bold text-[#141210]">{product.cut}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-6 pt-0 flex items-center justify-between border-t border-[#FAF8F5] mt-3">
+                      <div>
+                        <span className="text-[10px] text-[#8F8171] block">מחיר ישיר</span>
+                        <span className="text-lg font-serif font-bold text-[#141210]">₪{product.price.toLocaleString()}</span>
+                      </div>
+                      <div className="px-4 py-2 rounded-full bg-[#FAF8F5] border border-[#EAE3D6] text-[#B39359] group-hover:bg-[#141210] group-hover:text-white transition-all text-xs font-semibold flex items-center gap-1">
+                        <span>פרטים ומדידה</span>
+                        <ArrowRight className="w-3.5 h-3.5 rotate-180" />
+                      </div>
+                    </div>
                   </div>
-                  <h4 className="font-serif font-bold text-xs sm:text-sm text-[#141210] leading-snug">{cat.labelHe}</h4>
-                  <span className="text-[10px] text-[#B39359] font-medium mt-2 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    צפייה בפריטים <ArrowRight className="w-3 h-3 rotate-180" />
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         </main>
@@ -1401,7 +1455,7 @@ export default function App() {
                   </div>
                   <div className="flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-[#B39359]" />
-                    <span>מפגש מדידה אישי בחדר העסקאות בבורסת היהלומים (בניין שמשון)</span>
+                    <span>מפגש מדידה אישי בבורסת היהלומים (בניין שמשון)</span>
                   </div>
                 </div>
 
@@ -1448,7 +1502,7 @@ export default function App() {
               {aboutText}
             </p>
             <p>
-              חדר העסקאות הפרטי שלנו ממוקם בבניין שמשון בבורסת היהלומים ברמת גן, ומציע חוויית קנייה בוטיקית וליווי אישי מקצועי לכל אורך הדרך – מבחירת האבן הגולמית בדירוג הבינלאומי המחמיר (GIA, IGI) ועד לעיצוב והרכבת טבעת האירוסין או תכשיט החלומות שלך.
+              הבוטיק הפרטי שלנו ממוקם בבניין שמשון בבורסת היהלומים ברמת גן, ומציע חוויית קנייה בוטיקית וליווי אישי מקצועי לכל אורך הדרך – מבחירת האבן הגולמית בדירוג הבינלאומי המחמיר (GIA, IGI) ועד לעיצוב והרכבת טבעת האירוסין או תכשיט החלומות שלך.
             </p>
             <div className="pt-6 border-t border-[#EAE3D6] flex flex-col sm:flex-row items-center justify-between gap-4">
               <div>
@@ -1473,8 +1527,8 @@ export default function App() {
         <main className="flex-1 max-w-4xl mx-auto px-4 py-16 space-y-8 text-right">
           <div className="text-center space-y-3">
             <span className="text-xs font-mono text-[#B39359] tracking-widest uppercase">פגישות וייעוץ אישי</span>
-            <h1 className="text-3xl sm:text-5xl font-serif font-bold text-[#141210]">חדר העסקאות בבורסת היהלומים</h1>
-            <p className="text-xs sm:text-sm text-[#8F8171]">בניין שמשון, בבורסת היהלומים רמת גן</p>
+            <h1 className="text-3xl sm:text-5xl font-serif font-bold text-[#141210]">פגישה בבורסת היהלומים</h1>
+            <p className="text-xs sm:text-sm text-[#8F8171]">בניין שמשון, בורסת היהלומים רמת גן</p>
             <div className="w-12 h-0.5 bg-[#B39359] mx-auto mt-2" />
           </div>
 
@@ -1560,7 +1614,7 @@ export default function App() {
                 <>
                   <div>
                     <h2 className="text-xl font-serif font-bold text-[#FAF8F5]">כניסת מנהל מערכת</h2>
-                    <p className="text-xs text-[#8F8171] mt-1">אימות מאובטח מול Supabase</p>
+                    <p className="text-xs text-[#8F8171] mt-1">אימות מאובטח</p>
                   </div>
 
                   <form onSubmit={handleLogin} className="space-y-4 text-right">
@@ -1938,7 +1992,7 @@ export default function App() {
                           type="submit"
                           className="w-full sm:w-auto px-8 py-3 bg-[#141210] text-[#D8C7B0] rounded-xl font-semibold text-xs tracking-wider uppercase hover:bg-[#201D19] shadow-xs cursor-pointer"
                         >
-                          שמור פריט ב-Supabase
+                          שמור פריט בגלריה
                         </button>
                       </div>
                     </form>
@@ -2159,7 +2213,7 @@ export default function App() {
               {adminTab === 'content' && (
                 <div className="space-y-8 animate-in fade-in duration-150">
                   <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EAE3D6] shadow-xs space-y-6">
-                    <h3 className="font-serif font-bold text-base text-[#141210]">עריכת טקסטים ותכנים באתר (נשמר ישירות ב-Supabase)</h3>
+                    <h3 className="font-serif font-bold text-base text-[#141210]">עריכת טקסטים ותכנים באתר</h3>
 
                     <form onSubmit={handleSaveSettings} className="space-y-5 text-xs">
                       
@@ -2213,7 +2267,7 @@ export default function App() {
                           className="px-8 py-3 bg-[#141210] text-[#D8C7B0] rounded-xl font-semibold text-xs flex items-center gap-2 hover:bg-[#201D19]"
                         >
                           <Save className="w-4 h-4 text-[#B39359]" />
-                          <span>שמור ועדכן את כל הטקסטים ב-Supabase</span>
+                          <span>שמור ועדכן את כל הטקסטים</span>
                         </button>
                       </div>
                     </form>
@@ -2250,7 +2304,7 @@ export default function App() {
                           className="px-8 py-3 bg-[#141210] text-[#D8C7B0] rounded-xl font-semibold text-xs flex items-center gap-2 hover:bg-[#201D19]"
                         >
                           <Save className="w-4 h-4 text-[#B39359]" />
-                          <span>שמור טלפון ב-Supabase</span>
+                          <span>שמור פרטי קשר</span>
                         </button>
                       </div>
                     </form>
@@ -2528,7 +2582,7 @@ export default function App() {
               <p className="text-xs text-[#D8C7B0]/80 leading-relaxed font-light">
                 ייצור תכשיטים בעיצוב אישי | Lab & Natural Diamonds.
                 <br />
-                חדר עסקאות ישיר בבורסת היהלומים רמת גן, בניין שמשון.
+                בורסת היהלומים רמת גן, בניין שמשון.
               </p>
             </div>
 
