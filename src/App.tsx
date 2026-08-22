@@ -23,11 +23,9 @@ import {
   ShieldCheck,
   Award,
   Calendar,
-  Layers,
   Image as ImageIcon,
   FileText,
   Settings,
-  Eye,
   Trash
 } from 'lucide-react';
 import { supabase } from './supabase';
