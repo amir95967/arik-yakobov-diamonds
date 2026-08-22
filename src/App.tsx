@@ -67,7 +67,7 @@ export interface DiamondProduct {
 
 const PHONE_NUMBER = '0544847078';
 const DISPLAY_PHONE = '054-4847078';
-const WHATSAPP_LINK = `https://wa.me/972544847078?text=${encodeURIComponent('שלום אריק, הגעתי דרך האתר ואשמח לייעוץ בנוגע ליהלומים ותכשיטים בעיצוב אישי.')}`;
+const WHATSAPP_LINK = `https://wa.me/972544847078?text=${encodeURIComponent('שלום אריק, הגעתי דרך האתר ואשמח לייעוץ בנוגע לטבעות ויהלומים בעיצוב אישי.')}`;
 
 const DEFAULT_MARQUEE_TEXT = '✦ Arik Yakobov Diamonds 💎 | ייצור תכשיטי יוקרה בעיצוב אישי | Lab & Natural Diamonds | 📍 בורסת היהלומים רמת גן, בניין שמשון | 📞 054-4847078 | תעודות גמולוגיות בינלאומיות GIA / IGI ✦';
 
@@ -95,22 +95,52 @@ const CATEGORIES_DATA: { value: ProductCategory; labelHe: string }[] = [
 const INITIAL_PRODUCTS: DiamondProduct[] = [
   {
     id: '1',
-    title: 'טבעת סוליטר קלאסית בשיבוץ יהלום טבעי 1.50 קראט',
+    title: 'טבעת סוליטר מרקיזה יוקרתית בשיבוץ יהלום 1.80 קראט',
     category: 'engagement',
     diamond_type: 'Natural',
-    shape: 'Round',
-    carat: 1.50,
+    shape: 'Marquise',
+    carat: 1.80,
     color: 'D',
     clarity: 'VVS1',
     cut: 'Excellent',
-    price: 34500,
+    price: 46800,
     status: 'available',
     certificate: 'GIA',
-    image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=1000&q=85'
+    image: '/images/ring-marquise.webp'
   },
   {
     id: '2',
-    title: 'טבעת אובל מלכותית בשיבוץ יהלום 2.05 קראט',
+    title: 'טבעת סוליטר מלכותית 6 שיניים בשיבוץ יהלום עגול 2.10 קראט',
+    category: 'engagement',
+    diamond_type: 'Natural',
+    shape: 'Round',
+    carat: 2.10,
+    color: 'E',
+    clarity: 'VVS2',
+    cut: 'Excellent',
+    price: 54000,
+    status: 'available',
+    certificate: 'GIA',
+    image: '/images/ring-round-solitaire.webp'
+  },
+  {
+    id: '3',
+    title: 'טבעת קושיון בשיבוץ שורת יהלומים Pavé עדינה 1.70 קראט',
+    category: 'engagement',
+    diamond_type: 'Lab',
+    shape: 'Cushion',
+    carat: 1.70,
+    color: 'D',
+    clarity: 'VVS1',
+    cut: 'Excellent',
+    price: 19800,
+    status: 'available',
+    certificate: 'IGI',
+    image: '/images/ring-cushion-pave.webp'
+  },
+  {
+    id: '4',
+    title: 'טבעת אובל יוקרתית בזהב צהוב 18K עם הילה נסתרת 2.05 קראט',
     category: 'engagement',
     diamond_type: 'Lab',
     shape: 'Oval',
@@ -121,22 +151,22 @@ const INITIAL_PRODUCTS: DiamondProduct[] = [
     price: 18500,
     status: 'available',
     certificate: 'IGI',
-    image: 'https://images.unsplash.com/photo-1598560917505-59a3ad559071?auto=format&fit=crop&w=1000&q=85'
+    image: '/images/ring-oval-gold.webp'
   },
   {
-    id: '3',
-    title: 'יהלום מרקיזה נדיר בחיתוך מושלם 1.80 קראט Natural',
-    category: 'loose',
+    id: '5',
+    title: 'טבעת סוליטר עגולה בשיבוץ חישוק כפול משובץ יהלומים 1.65 קראט',
+    category: 'engagement',
     diamond_type: 'Natural',
-    shape: 'Marquise',
-    carat: 1.80,
-    color: 'D',
-    clarity: 'VVS2',
+    shape: 'Round',
+    carat: 1.65,
+    color: 'F',
+    clarity: 'VVS1',
     cut: 'Excellent',
-    price: 46800,
+    price: 38900,
     status: 'available',
     certificate: 'GIA',
-    image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=1000&q=85'
+    image: '/images/ring-round-split.webp'
   }
 ];
 
@@ -386,7 +416,7 @@ export default function App() {
       return;
     }
 
-    let imageUrl = 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=1000&q=85';
+    let imageUrl = '/images/ring-round-solitaire.webp';
 
     if (fileInputRef.current?.files?.[0]) {
       const file = fileInputRef.current.files[0];
@@ -789,7 +819,7 @@ export default function App() {
               <div className="lg:col-span-5 relative z-10 flex justify-center">
                 <div className="w-full max-w-md aspect-4/5 rounded-3xl overflow-hidden border border-[#B39359]/30 shadow-2xl relative group">
                   <img 
-                    src="https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=1200&q=90" 
+                    src="/images/ring-marquise.webp" 
                     alt="Arik Yakobov Haute Diamonds" 
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                   />
@@ -1004,7 +1034,6 @@ export default function App() {
                         className="bg-white rounded-3xl border border-[#EAE3D6] overflow-hidden shadow-xs hover:shadow-2xl transition-all duration-500 group flex flex-col justify-between cursor-pointer"
                       >
                         <div>
-                          {/* Image Box */}
                           <div className="relative aspect-4/5 overflow-hidden bg-[#FAF8F5]">
                             <img
                               src={product.image}
@@ -1012,7 +1041,6 @@ export default function App() {
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                             />
                             
-                            {/* Shape & Type Badges */}
                             <div className="absolute top-4 right-4 flex items-center gap-1.5">
                               <span className="px-3 py-1 rounded-full bg-white/95 backdrop-blur-md text-[11px] font-bold text-[#141210] shadow-xs">
                                 {shapeObj ? shapeObj.labelHe : product.shape}
@@ -1024,7 +1052,6 @@ export default function App() {
                               )}
                             </div>
 
-                            {/* Status Overlay */}
                             {product.status !== 'available' && (
                               <div className="absolute inset-0 bg-black/50 backdrop-blur-2xs flex items-center justify-center">
                                 <span className="px-5 py-2 rounded-full bg-white text-[#141210] text-xs font-bold uppercase tracking-wider">
@@ -1034,7 +1061,6 @@ export default function App() {
                             )}
                           </div>
 
-                          {/* Info Body */}
                           <div className="p-6 space-y-3 text-right">
                             <div className="flex items-center justify-between text-[11px] text-[#8F8171] font-medium">
                               <span>{product.carat} קראט</span>
@@ -1045,7 +1071,6 @@ export default function App() {
                               {product.title}
                             </h3>
 
-                            {/* 4Cs Specifications */}
                             <div className="grid grid-cols-3 gap-2 pt-2 text-center text-[10px]">
                               <div className="bg-[#FAF8F5] border border-[#EAE3D6] rounded-xl py-1.5">
                                 <span className="text-[#8F8171] block font-light">צבע</span>
@@ -1063,7 +1088,6 @@ export default function App() {
                           </div>
                         </div>
 
-                        {/* Price & Action */}
                         <div className="p-6 pt-0 flex items-center justify-between border-t border-[#FAF8F5] mt-3">
                           <div className="text-right">
                             <span className="text-[10px] text-[#8F8171] block font-light">מחיר בורסה ישיר</span>
@@ -1087,7 +1111,7 @@ export default function App() {
         </main>
       )}
 
-      {/* 4. PRODUCT DETAIL MODAL (SHOWROOM EXPERIENCE LIKE ROCKS & GOLD) */}
+      {/* 4. PRODUCT DETAIL MODAL */}
       {selectedProductView && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white border border-[#EAE3D6] rounded-3xl max-w-4xl w-full p-6 sm:p-10 relative shadow-2xl max-h-[92vh] overflow-y-auto text-right">
@@ -1101,7 +1125,6 @@ export default function App() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
               
-              {/* Product Visual */}
               <div className="aspect-square rounded-2xl overflow-hidden border border-[#EAE3D6] bg-[#FAF8F5] relative">
                 <img 
                   src={selectedProductView.image} 
@@ -1120,7 +1143,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Product Info & Direct Booking */}
               <div className="space-y-6">
                 <div>
                   <span className="text-xs font-mono text-[#B39359] uppercase tracking-widest">ARIK YAKOBOV SHOWROOM</span>
@@ -1132,7 +1154,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* 4Cs Table */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
                   <div className="bg-[#FAF8F5] p-2.5 rounded-xl border border-[#EAE3D6]">
                     <span className="text-[10px] text-[#8F8171] block">משקל קראט</span>
@@ -1152,7 +1173,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Trust Points */}
                 <div className="space-y-2 text-xs text-[#544B41] pt-2">
                   <div className="flex items-center gap-2">
                     <ShieldCheck className="w-4 h-4 text-[#B39359]" />
@@ -1168,7 +1188,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Direct Action Buttons */}
                 <div className="space-y-3 pt-2">
                   <a
                     href={`https://wa.me/972544847078?text=${encodeURIComponent(`שלום אריק, אני מעוניין לתאם פגישה ומדידה בבורסה עבור: ${selectedProductView.title}`)}`}
@@ -2007,7 +2026,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 5. OFFICIAL WHATSAPP FLOATING BUTTON (BOTTOM LEFT) */}
+      {/* 5. OFFICIAL WHATSAPP FLOATING BUTTON */}
       <a
         href={WHATSAPP_LINK}
         target="_blank"
