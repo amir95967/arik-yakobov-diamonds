@@ -3,7 +3,6 @@ import {
   Diamond, 
   Phone, 
   MapPin, 
-  Lock, 
   Plus, 
   Trash2, 
   Edit3, 
@@ -23,7 +22,8 @@ import {
   Package,
   MessageCircle,
   Clock,
-  Send
+  Send,
+  Save
 } from 'lucide-react';
 import { supabase } from './supabase';
 
@@ -69,6 +69,8 @@ export interface DiamondProduct {
 const PHONE_NUMBER = '0544847078';
 const DISPLAY_PHONE = '054-4847078';
 const WHATSAPP_LINK = `https://wa.me/972544847078?text=${encodeURIComponent('שלום אריק, הגעתי דרך האתר ואשמח לייעוץ בנוגע ליהלומים ותכשיטים.')}`;
+
+const DEFAULT_MARQUEE_TEXT = '✦ Arik Yakobov Diamonds 💎 | ייצור תכשיטים בעיצוב אישי | Lab & Natural Diamonds | 📍 בורסת היהלומים רמת גן, בניין שמשון | 📞 054-4847078 | תעודות גמולוגיות בינלאומיות GIA / IGI | שירות VIP ואחריות מלאה לכל החיים ✦';
 
 const SHAPES_DATA: { value: DiamondShape; labelHe: string; labelEn: string }[] = [
   { value: 'Round', labelHe: 'עגול', labelEn: 'Round' },
@@ -143,9 +145,14 @@ const INITIAL_PRODUCTS: DiamondProduct[] = [
 ];
 
 export default function App() {
-  // Routing State: 'home' | 'shop' | 'about' | 'contactus' | 'admin'
   const [currentRoute, setCurrentRoute] = useState<'home' | 'shop' | 'about' | 'contactus' | 'admin'>('home');
   const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(false);
+
+  // Marquee announcement text (editable in admin)
+  const [marqueeText, setMarqueeText] = useState<string>(() => {
+    return localStorage.getItem('ay_marquee_text') || DEFAULT_MARQUEE_TEXT;
+  });
+  const [tempMarqueeInput, setTempMarqueeInput] = useState<string>(marqueeText);
 
   // Products & Filter States
   const [products, setProducts] = useState<DiamondProduct[]>(INITIAL_PRODUCTS);
@@ -194,7 +201,6 @@ export default function App() {
     status: 'available' as const
   });
 
-  // Client Routing sync with pathname / hash
   const navigateTo = (route: 'home' | 'shop' | 'about' | 'contactus' | 'admin', category?: ProductCategory) => {
     setCurrentRoute(route);
     if (category) setSelectedCategory(category);
@@ -227,7 +233,6 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePop);
   }, []);
 
-  // Fetch products from Supabase
   useEffect(() => {
     fetchProducts();
   }, []);
@@ -247,7 +252,6 @@ export default function App() {
     }
   };
 
-  // Auth Session
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -377,7 +381,13 @@ export default function App() {
     setVerifyCode('');
   };
 
-  // Add Product
+  const handleSaveMarquee = (e: React.FormEvent) => {
+    e.preventDefault();
+    setMarqueeText(tempMarqueeInput);
+    localStorage.setItem('ay_marquee_text', tempMarqueeInput);
+    alert('הטקסט הרץ עודכן בהצלחה!');
+  };
+
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProduct.sku || !newProduct.title || !newProduct.price) {
@@ -447,7 +457,6 @@ export default function App() {
     }
   };
 
-  // Update Product
   const handleUpdateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProduct) return;
@@ -525,7 +534,6 @@ export default function App() {
     }
   };
 
-  // Filtered Products
   const filteredProducts = products.filter(product => {
     const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
     const matchesShape = selectedShape === 'all' || product.shape === selectedShape;
@@ -540,60 +548,64 @@ export default function App() {
     return matchesCategory && matchesShape && matchesType && matchesColor && matchesClarity && matchesCarat && matchesPrice && matchesSearch;
   });
 
-  // Admin Stats
   const totalInventoryValue = products.reduce((sum, p) => sum + (p.price || 0), 0);
   const activeCount = products.filter(p => p.status === 'available').length;
   const reservedCount = products.filter(p => p.status === 'reserved').length;
   const soldCount = products.filter(p => p.status === 'sold').length;
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5] text-[#1C1A17] font-sans flex flex-col antialiased" dir="rtl">
+    <div className="min-h-screen bg-[#FAF8F5] text-[#1C1A17] font-sans flex flex-col antialiased overflow-x-hidden" dir="rtl">
       
-      {/* 1. RUNNING TICKER MARQUEE TOP BAR */}
-      <div className="bg-[#11100E] text-[#D5C7B2] py-2 overflow-hidden border-b border-[#2B2722] relative select-none">
-        <div className="whitespace-nowrap flex animate-marquee">
-          <div className="flex items-center gap-10 text-[11px] font-medium tracking-wide">
-            <span className="flex items-center gap-1.5"><Diamond className="w-3.5 h-3.5 text-[#C5A880]" /> Arik Yakobov Diamonds</span>
-            <span>✦ חדר עסקאות בלעדי בבורסת היהלומים, בניין שמשון רמת גן</span>
-            <span>✦ ייצור תכשיטים בעיצוב אישי | Lab & Natural Diamonds</span>
-            <span>✦ תעודות גמולוגיות בינלאומיות GIA / IGI מקוריות</span>
-            <span>✦ שירות VIP ואחריות לכל החיים</span>
-            <span>✦ טלפון ישיר: {DISPLAY_PHONE}</span>
+      {/* 1. RUNNING TICKER MARQUEE (SMOOTH KEYFRAME ANIMATION) */}
+      <style>{`
+        @keyframes customMarquee {
+          0% { transform: translateX(0%); }
+          100% { transform: translateX(50%); }
+        }
+        .marquee-track {
+          display: flex;
+          width: max-content;
+          animation: customMarquee 28s linear infinite;
+        }
+        .marquee-track:hover {
+          animation-play-state: paused;
+        }
+      `}</style>
+
+      <div className="bg-[#11100E] text-[#D5C7B2] py-2.5 overflow-hidden border-b border-[#2B2722] relative select-none">
+        <div className="marquee-track">
+          <div className="flex items-center gap-12 text-[11px] sm:text-xs font-medium tracking-wide whitespace-nowrap pl-6">
+            <span>{marqueeText}</span>
           </div>
-          <div className="flex items-center gap-10 text-[11px] font-medium tracking-wide mr-10">
-            <span className="flex items-center gap-1.5"><Diamond className="w-3.5 h-3.5 text-[#C5A880]" /> Arik Yakobov Diamonds</span>
-            <span>✦ חדר עסקאות בלעדי בבורסת היהלומים, בניין שמשון רמת גן</span>
-            <span>✦ ייצור תכשיטים בעיצוב אישי | Lab & Natural Diamonds</span>
-            <span>✦ תעודות גמולוגיות בינלאומיות GIA / IGI מקוריות</span>
-            <span>✦ שירות VIP ואחריות לכל החיים</span>
-            <span>✦ טלפון ישיר: {DISPLAY_PHONE}</span>
+          <div className="flex items-center gap-12 text-[11px] sm:text-xs font-medium tracking-wide whitespace-nowrap pl-6">
+            <span>{marqueeText}</span>
           </div>
         </div>
       </div>
 
-      {/* 2. MAIN HEADER WITH LOGO ON RIGHT & ROUTES */}
+      {/* 2. MAIN HEADER (LOGO ON RIGHT, NO ADMIN LOCK ON TOP) */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#EDE6DC]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           
-          {/* RIGHT: CLICKABLE BRAND LOGO TO HOME */}
+          {/* RIGHT: CLICKABLE BRAND LOGO */}
           <div 
             onClick={() => navigateTo('home')} 
-            className="flex items-center gap-3 cursor-pointer group select-none"
+            className="flex items-center gap-2.5 sm:gap-3 cursor-pointer group select-none"
           >
             <div className="w-10 h-10 rounded-2xl bg-[#1C1A17] flex items-center justify-center text-[#C5A880] shadow-sm transition-transform duration-300 group-hover:scale-105">
               <Diamond className="w-5 h-5" />
             </div>
             <div className="flex flex-col text-right">
-              <span className="text-lg sm:text-xl font-serif font-bold tracking-tight text-[#1C1A17] leading-none">
+              <span className="text-base sm:text-xl font-serif font-bold tracking-tight text-[#1C1A17] leading-none">
                 ARIK YAKOBOV
               </span>
-              <span className="text-[9px] tracking-[0.25em] text-[#8C8275] uppercase font-bold mt-1">
+              <span className="text-[8px] sm:text-[9px] tracking-[0.25em] text-[#8C8275] uppercase font-bold mt-1">
                 DIAMONDS & JEWELRY
               </span>
             </div>
           </div>
 
-          {/* CENTER: DESKTOP ROUTE NAVIGATION LINKS */}
+          {/* CENTER: NAVIGATION LINKS (DESKTOP) */}
           <nav className="hidden md:flex items-center gap-8 text-xs font-semibold tracking-wider text-[#575047]">
             <button
               onClick={() => navigateTo('home')}
@@ -604,7 +616,7 @@ export default function App() {
               דף הבית
             </button>
 
-            {/* SHOP WITH DROPDOWN CATEGORIES */}
+            {/* SHOP DROPDOWN */}
             <div className="relative group">
               <button
                 onClick={() => navigateTo('shop')}
@@ -617,7 +629,6 @@ export default function App() {
                 <ChevronDown className="w-3.5 h-3.5 transition-transform group-hover:rotate-180" />
               </button>
 
-              {/* DROPDOWN MENU */}
               {isShopDropdownOpen && (
                 <div 
                   onMouseLeave={() => setIsShopDropdownOpen(false)}
@@ -663,29 +674,16 @@ export default function App() {
             </button>
           </nav>
 
-          {/* LEFT: ACTION BUTTONS & MOBILE BURGER TRIGGER */}
+          {/* LEFT: PHONE ACTION & MOBILE BURGER */}
           <div className="flex items-center gap-3">
             <a
-              href={WHATSAPP_LINK}
-              target="_blank"
-              rel="noreferrer"
+              href={`tel:${PHONE_NUMBER}`}
               className="hidden sm:flex items-center gap-2 bg-[#1C1A17] text-white px-4 py-2.5 rounded-xl text-xs font-semibold tracking-wider hover:bg-[#332F2A] transition-all shadow-xs"
             >
               <Phone className="w-3.5 h-3.5 text-[#C5A880]" />
               <span>{DISPLAY_PHONE}</span>
             </a>
 
-            <button
-              onClick={() => navigateTo('admin')}
-              className={`p-2.5 rounded-xl border border-[#EDE6DC] text-[#8C8275] hover:text-[#1C1A17] hover:bg-[#FAF8F5] transition-colors cursor-pointer ${
-                currentRoute === 'admin' ? 'bg-[#1C1A17] text-white border-[#1C1A17]' : 'bg-white'
-              }`}
-              title="כניסת מנהל"
-            >
-              <Lock className="w-4 h-4" />
-            </button>
-
-            {/* Mobile Menu Trigger */}
             <button
               onClick={() => setIsMobileNavOpen(true)}
               className="md:hidden p-2.5 rounded-xl bg-[#FAF8F5] border border-[#EDE6DC] text-[#1C1A17]"
@@ -697,14 +695,11 @@ export default function App() {
         </div>
       </header>
 
-      {/* MOBILE DRAWER (BURGER) */}
+      {/* MOBILE DRAWER */}
       {isMobileNavOpen && (
         <div className="fixed inset-0 z-50 flex">
-          <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs" 
-            onClick={() => setIsMobileNavOpen(false)}
-          />
-          <div className="relative z-50 w-4/5 max-w-xs bg-white h-full shadow-2xl p-6 flex flex-col justify-between">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setIsMobileNavOpen(false)} />
+          <div className="relative z-50 w-4/5 max-w-xs bg-white h-full shadow-2xl p-6 flex flex-col justify-between overflow-y-auto">
             <div className="space-y-6">
               <div className="flex items-center justify-between border-b border-[#EDE6DC] pb-4">
                 <div className="flex items-center gap-2">
@@ -716,7 +711,6 @@ export default function App() {
                 </button>
               </div>
 
-              {/* Main Links */}
               <div className="space-y-1 text-sm font-semibold">
                 <button 
                   onClick={() => navigateTo('home')} 
@@ -744,7 +738,6 @@ export default function App() {
                 </button>
               </div>
 
-              {/* Sub Categories */}
               <div className="pt-3 border-t border-[#EDE6DC] space-y-1">
                 <p className="text-[11px] font-bold text-[#8C8275] uppercase px-3 mb-1">קטגוריות תכשיטים</p>
                 {CATEGORIES_DATA.map(cat => (
@@ -760,12 +753,12 @@ export default function App() {
               </div>
             </div>
 
-            <div className="border-t border-[#EDE6DC] pt-4 space-y-2">
+            <div className="border-t border-[#EDE6DC] pt-4">
               <a
                 href={WHATSAPP_LINK}
                 target="_blank"
                 rel="noreferrer"
-                className="w-full py-3 bg-[#1C1A17] text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2"
+                className="w-full py-3 bg-[#1C1A17] text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 shadow-xs"
               >
                 <Phone className="w-4 h-4 text-[#C5A880]" />
                 <span>וואטסאפ: {DISPLAY_PHONE}</span>
@@ -775,33 +768,32 @@ export default function App() {
         </div>
       )}
 
-      {/* 3. DYNAMIC ROUTE CONTENT */}
+      {/* 3. DYNAMIC VIEWS */}
       {currentRoute === 'home' && (
         <main className="flex-1">
-          {/* Hero Section */}
-          <div className="relative bg-[#11100E] text-white py-20 sm:py-28 px-4 border-b border-[#2B2722] overflow-hidden">
-            <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="relative bg-[#11100E] text-white py-16 sm:py-28 px-4 border-b border-[#2B2722]">
+            <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
               <div className="space-y-6 text-right z-10">
                 <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#2A2622] border border-[#3E3832] text-[#C5A880] text-xs font-semibold">
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>ייצור תכשיטים בעיצוב אישי | Lab & Natural Diamonds</span>
                 </div>
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold leading-tight">
+                <h1 className="text-3xl sm:text-5xl lg:text-6xl font-serif font-bold leading-tight">
                   יהלומים נדירים בבורסת היהלומים
                 </h1>
-                <p className="text-sm sm:text-base text-[#D5C7B2] max-w-lg leading-relaxed">
+                <p className="text-xs sm:text-base text-[#D5C7B2] max-w-lg leading-relaxed">
                   הצטרפו לפגישה אישית בחדר העסקאות בבניין שמשון. רכישת יהלומים טבעיים ויהלומי מעבדה ללא פערי תיווך, בדירוג המחמיר בעולם (GIA / IGI).
                 </p>
-                <div className="flex flex-wrap gap-4 pt-2">
+                <div className="flex flex-wrap gap-3 pt-2">
                   <button
                     onClick={() => navigateTo('shop')}
-                    className="px-8 py-3.5 bg-[#C5A880] text-[#11100E] font-bold rounded-xl text-xs uppercase tracking-wider hover:bg-[#b0936b] transition-colors"
+                    className="px-6 sm:px-8 py-3.5 bg-[#C5A880] text-[#11100E] font-bold rounded-xl text-xs uppercase tracking-wider hover:bg-[#b0936b] transition-colors"
                   >
                     צפייה בקטלוג המוצרים
                   </button>
                   <button
                     onClick={() => navigateTo('contactus')}
-                    className="px-6 py-3.5 bg-[#221F1B] border border-[#3E3832] text-white font-semibold rounded-xl text-xs hover:bg-[#2B2722] transition-colors"
+                    className="px-5 sm:px-6 py-3.5 bg-[#221F1B] border border-[#3E3832] text-white font-semibold rounded-xl text-xs hover:bg-[#2B2722] transition-colors"
                   >
                     תיאום פגישה בבורסה
                   </button>
@@ -815,26 +807,25 @@ export default function App() {
                     alt="Arik Yakobov Diamond" 
                     className="w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-6">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-6 text-right">
                     <span className="text-[#C5A880] text-xs font-mono">ARIK YAKOBOV</span>
-                    <h3 className="font-serif font-bold text-white text-lg">בניין שמשון, בורסת היהלומים רמת גן</h3>
+                    <h3 className="font-serif font-bold text-white text-base sm:text-lg">בניין שמשון, בורסת היהלומים רמת גן</h3>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Quick Categories Bar */}
           <div className="max-w-7xl mx-auto px-4 py-12">
-            <h2 className="text-center font-serif text-2xl font-bold mb-8 text-[#1C1A17]">קטגוריות נבחרות</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <h2 className="text-center font-serif text-xl sm:text-2xl font-bold mb-8 text-[#1C1A17]">קטגוריות נבחרות</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
               {CATEGORIES_DATA.filter(c => c.value !== 'all').map(cat => (
                 <div
                   key={cat.value}
                   onClick={() => navigateTo('shop', cat.value)}
-                  className="bg-white p-5 rounded-2xl border border-[#EDE6DC] text-center hover:border-[#9E8255] hover:shadow-md transition-all cursor-pointer group"
+                  className="bg-white p-4 sm:p-5 rounded-2xl border border-[#EDE6DC] text-center hover:border-[#9E8255] hover:shadow-md transition-all cursor-pointer group"
                 >
-                  <div className="w-10 h-10 mx-auto rounded-full bg-[#FAF8F5] flex items-center justify-center text-[#9E8255] mb-3 group-hover:bg-[#1C1A17] group-hover:text-[#C5A880] transition-colors">
+                  <div className="w-10 h-10 mx-auto rounded-full bg-[#FAF8F5] flex items-center justify-center text-[#9E8255] mb-2 sm:mb-3 group-hover:bg-[#1C1A17] group-hover:text-[#C5A880] transition-colors">
                     <Diamond className="w-5 h-5" />
                   </div>
                   <h4 className="font-bold text-xs text-[#1C1A17]">{cat.labelHe}</h4>
@@ -845,13 +836,13 @@ export default function App() {
         </main>
       )}
 
-      {/* SHOP ROUTE (CATALOG + RIGHT ADVANCED FILTERS) */}
+      {/* SHOP VIEW */}
       {currentRoute === 'shop' && (
         <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
           
           <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#1C1A17]">קטלוג יהלומים ותכשיטי יוקרה</h1>
+            <div className="text-right">
+              <h1 className="text-xl sm:text-3xl font-serif font-bold text-[#1C1A17]">קטלוג יהלומים ותכשיטי יוקרה</h1>
               <p className="text-xs text-[#8C8275] mt-1">בורסת היהלומים רמת גן, בניין שמשון</p>
             </div>
             <button
@@ -865,8 +856,8 @@ export default function App() {
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
             
-            {/* RIGHT SIDEBAR: ADVANCED RICH FILTERS */}
-            <aside className="hidden lg:block lg:col-span-1 bg-white p-6 rounded-3xl border border-[#EDE6DC] shadow-xs space-y-6 sticky top-28 text-xs">
+            {/* RIGHT SIDEBAR FILTERS (DESKTOP) */}
+            <aside className="hidden lg:block lg:col-span-1 bg-white p-6 rounded-3xl border border-[#EDE6DC] shadow-xs space-y-6 sticky top-28 text-xs text-right">
               <div className="flex items-center justify-between border-b border-[#EDE6DC] pb-4">
                 <div className="flex items-center gap-2 font-serif font-bold text-sm text-[#1C1A17]">
                   <Filter className="w-4 h-4 text-[#9E8255]" />
@@ -889,7 +880,6 @@ export default function App() {
                 </button>
               </div>
 
-              {/* Free Search */}
               <div className="space-y-1.5">
                 <label className="font-semibold text-[#575047]">חיפוש מק"ט או כותרת</label>
                 <div className="relative">
@@ -897,14 +887,13 @@ export default function App() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="AY-10492, מרקיזה, סוליטר..."
+                    placeholder="AY-10492, מרקיזה..."
                     className="w-full pr-8 pl-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2] text-xs focus:outline-none focus:border-[#9E8255]"
                   />
                   <Search className="w-3.5 h-3.5 text-[#8C8275] absolute right-2.5 top-2.5" />
                 </div>
               </div>
 
-              {/* Diamond Type Filter: Lab vs Natural */}
               <div className="space-y-1.5">
                 <label className="font-semibold text-[#575047]">סוג היהלום</label>
                 <div className="grid grid-cols-3 gap-1">
@@ -918,18 +907,17 @@ export default function App() {
                     onClick={() => setSelectedDiamondType('Natural')}
                     className={`py-1.5 rounded-lg font-medium text-[11px] ${selectedDiamondType === 'Natural' ? 'bg-[#9E8255] text-white font-bold' : 'bg-[#FAF8F5] border border-[#D5C7B2]'}`}
                   >
-                    טבעי (Natural)
+                    טבעי
                   </button>
                   <button
                     onClick={() => setSelectedDiamondType('Lab')}
                     className={`py-1.5 rounded-lg font-medium text-[11px] ${selectedDiamondType === 'Lab' ? 'bg-[#9E8255] text-white font-bold' : 'bg-[#FAF8F5] border border-[#D5C7B2]'}`}
                   >
-                    מעבדה (Lab)
+                    מעבדה
                   </button>
                 </div>
               </div>
 
-              {/* Category */}
               <div className="space-y-1.5">
                 <label className="font-semibold text-[#575047]">קטגוריה</label>
                 <div className="space-y-1">
@@ -948,7 +936,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Shape (Hebrew + Marquise) */}
               <div className="space-y-1.5">
                 <label className="font-semibold text-[#575047]">צורת חיתוך (בעברית)</label>
                 <div className="grid grid-cols-3 gap-1">
@@ -973,39 +960,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Color Filter */}
-              <div className="space-y-1.5">
-                <label className="font-semibold text-[#575047]">צבע יהלום (Color)</label>
-                <div className="flex flex-wrap gap-1">
-                  {['all', 'D', 'E', 'F', 'G', 'H'].map(col => (
-                    <button
-                      key={col}
-                      onClick={() => setSelectedColor(col)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${selectedColor === col ? 'bg-[#1C1A17] text-white' : 'bg-[#FAF8F5] border border-[#D5C7B2]'}`}
-                    >
-                      {col === 'all' ? 'הכל' : col}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Clarity Filter */}
-              <div className="space-y-1.5">
-                <label className="font-semibold text-[#575047]">ניקיון (Clarity)</label>
-                <div className="flex flex-wrap gap-1">
-                  {['all', 'FL', 'VVS1', 'VVS2', 'VS1', 'VS2', 'SI1'].map(cla => (
-                    <button
-                      key={cla}
-                      onClick={() => setSelectedClarity(cla)}
-                      className={`px-2 py-1 rounded-lg text-[10px] font-semibold ${selectedClarity === cla ? 'bg-[#1C1A17] text-white' : 'bg-[#FAF8F5] border border-[#D5C7B2]'}`}
-                    >
-                      {cla === 'all' ? 'הכל' : cla}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Price Range */}
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
                   <span className="font-semibold text-[#575047]">עד תקציב:</span>
@@ -1023,15 +977,15 @@ export default function App() {
               </div>
             </aside>
 
-            {/* PRODUCT CARDS GRID */}
+            {/* PRODUCT CARDS */}
             <div className="lg:col-span-3 space-y-6">
               
               <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-[#EDE6DC] text-xs">
                 <div>
-                  <span className="font-bold text-[#1C1A17]">{filteredProducts.length}</span> מוצרים זמינים לצפייה
+                  <span className="font-bold text-[#1C1A17]">{filteredProducts.length}</span> מוצרים נמצאו
                 </div>
                 <div className="text-[#8C8275]">
-                  מחירים כוללים מע"מ ואחריות מלאה
+                  בורסת היהלומים רמת גן, בניין שמשון
                 </div>
               </div>
 
@@ -1039,10 +993,10 @@ export default function App() {
                 <div className="bg-white rounded-3xl border border-[#EDE6DC] p-12 text-center space-y-4">
                   <Diamond className="w-12 h-12 text-[#D5C7B2] mx-auto" />
                   <h3 className="font-serif font-bold text-lg text-[#1C1A17]">לא נמצאו פריטים במסננים אלו</h3>
-                  <p className="text-xs text-[#8C8275]">ניתן לאפס את המסננים או ליצור קשר ישיר לייצור תכשיט מותאם אישית.</p>
+                  <p className="text-xs text-[#8C8275]">ניתן לאפס את המסננים או ליצור קשר ישיר לייצור תכשיט בעיצוב אישי.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6">
                   {filteredProducts.map(product => {
                     const shapeObj = SHAPES_DATA.find(s => s.value === product.shape);
                     return (
@@ -1078,7 +1032,7 @@ export default function App() {
                             )}
                           </div>
 
-                          <div className="p-5 space-y-3">
+                          <div className="p-5 space-y-3 text-right">
                             <div className="flex items-center justify-between text-[11px] text-[#8C8275]">
                               <span className="font-mono">{product.sku}</span>
                               <span>{product.carat} קראט</span>
@@ -1106,7 +1060,7 @@ export default function App() {
                         </div>
 
                         <div className="p-5 pt-0 flex items-center justify-between border-t border-[#FAF8F5] mt-2">
-                          <div>
+                          <div className="text-right">
                             <span className="text-[10px] text-[#8C8275] block">מחיר ישיר</span>
                             <span className="text-base font-bold text-[#1C1A17]">
                               ₪{product.price.toLocaleString()}
@@ -1119,7 +1073,7 @@ export default function App() {
                             rel="noreferrer"
                             className="px-4 py-2 bg-[#1C1A17] text-white rounded-xl text-xs font-semibold hover:bg-[#332F2A] transition-colors flex items-center gap-1.5"
                           >
-                            <span>בוואטסאפ</span>
+                            <span>לפרטים</span>
                             <ArrowRight className="w-3.5 h-3.5 text-[#C5A880] rotate-180" />
                           </a>
                         </div>
@@ -1133,24 +1087,24 @@ export default function App() {
         </main>
       )}
 
-      {/* ABOUT ROUTE */}
+      {/* ABOUT VIEW */}
       {currentRoute === 'about' && (
-        <main className="flex-1 max-w-4xl mx-auto px-4 py-16 text-right space-y-8">
+        <main className="flex-1 max-w-4xl mx-auto px-4 py-12 sm:py-16 text-right space-y-8">
           <div className="text-center space-y-3">
             <span className="text-xs font-mono text-[#9E8255] tracking-widest uppercase">אודות המותג</span>
-            <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[#1C1A17]">Arik Yakobov Diamonds</h1>
-            <p className="text-sm text-[#8C8275]">בורסת היהלומים רמת גן, בניין שמשון</p>
+            <h1 className="text-2xl sm:text-4xl font-serif font-bold text-[#1C1A17]">Arik Yakobov Diamonds</h1>
+            <p className="text-xs sm:text-sm text-[#8C8275]">בורסת היהלומים רמת גן, בניין שמשון</p>
           </div>
 
-          <div className="bg-white p-8 sm:p-12 rounded-3xl border border-[#EDE6DC] shadow-xs space-y-6 text-sm text-[#575047] leading-relaxed">
+          <div className="bg-white p-6 sm:p-12 rounded-3xl border border-[#EDE6DC] shadow-xs space-y-6 text-sm text-[#575047] leading-relaxed">
             <p className="font-semibold text-base text-[#1C1A17]">
-              שלום וברוכים הבאים לעולם היהלומים ותכשיטי היוקרה של אריק יעקובוב.
+              ברוכים הבאים לעולם היהלומים ותכשיטי היוקרה של אריק יעקובוב.
             </p>
             <p>
               אנו מתמחים בייצור תכשיטים בעיצוב אישי וברכישת יהלומים טבעיים ויהלומי מעבדה (Lab & Natural Diamonds) ישירות מחברי בורסת היהלומים ברמת גן, ללא פערי תיווך וללא עמלות מיותרות.
             </p>
             <p>
-              חדר העסקאות שלנו ממוקם בבניין שמשון בבורסת היהלומים ברמת גן, ומציע חוויית קנייה וליווי אישי מקצועי לכל אורך הדרך – מבחירת האבן הגולמית או המלוטשת בדירוג הבינלאומי המחמיר ביותר (GIA, IGI) ועד לעיצוב והרכבת טבעת האירוסין או התכשיט המושלם.
+              חדר העסקאות שלנו ממוקם בבניין שמשון בבורסת היהלומים ברמת גן, ומציע חוויית קנייה וליווי אישי מקצועי לכל אורך הדרך – מבחירת האבן בדירוג הבינלאומי (GIA, IGI) ועד לעיצוב והרכבת התכשיט המושלם.
             </p>
             <div className="pt-4 border-t border-[#EDE6DC] flex flex-col sm:flex-row items-center justify-between gap-4">
               <div>
@@ -1161,7 +1115,7 @@ export default function App() {
                 href={WHATSAPP_LINK}
                 target="_blank"
                 rel="noreferrer"
-                className="px-6 py-3 bg-[#1C1A17] text-white rounded-xl text-xs font-semibold hover:bg-[#332F2A]"
+                className="w-full sm:w-auto text-center px-6 py-3 bg-[#1C1A17] text-white rounded-xl text-xs font-semibold hover:bg-[#332F2A]"
               >
                 תיאום פגישה אישית
               </a>
@@ -1170,17 +1124,17 @@ export default function App() {
         </main>
       )}
 
-      {/* CONTACT US ROUTE */}
+      {/* CONTACT US VIEW */}
       {currentRoute === 'contactus' && (
-        <main className="flex-1 max-w-4xl mx-auto px-4 py-16 space-y-8">
+        <main className="flex-1 max-w-4xl mx-auto px-4 py-12 sm:py-16 space-y-8 text-right">
           <div className="text-center space-y-3">
             <span className="text-xs font-mono text-[#9E8255] tracking-widest uppercase">יצירת קשר ופגישות</span>
-            <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[#1C1A17]">בואו ניפגש בבורסת היהלומים</h1>
+            <h1 className="text-2xl sm:text-4xl font-serif font-bold text-[#1C1A17]">בואו ניפגש בבורסת היהלומים</h1>
             <p className="text-xs sm:text-sm text-[#8C8275]">בניין שמשון, בורסת היהלומים רמת גן</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white p-8 rounded-3xl border border-[#EDE6DC] shadow-xs space-y-6 text-right">
+            <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EDE6DC] shadow-xs space-y-6">
               <h3 className="font-serif font-bold text-lg text-[#1C1A17]">פרטי הגעה והתקשרות</h3>
               
               <div className="space-y-4 text-xs text-[#575047]">
@@ -1220,7 +1174,7 @@ export default function App() {
               </a>
             </div>
 
-            <div className="bg-white p-8 rounded-3xl border border-[#EDE6DC] shadow-xs text-right space-y-4">
+            <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EDE6DC] shadow-xs space-y-4">
               <h3 className="font-serif font-bold text-lg text-[#1C1A17]">השארת פנייה מהירה</h3>
               <form onSubmit={(e) => {
                 e.preventDefault();
@@ -1248,13 +1202,13 @@ export default function App() {
         </main>
       )}
 
-      {/* 4. UPGRADED LUXURY ADMIN PANEL ROUTE */}
+      {/* ADMIN PANEL VIEW */}
       {currentRoute === 'admin' && (
-        <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full text-right">
           {!isAdminAuthenticated ? (
-            <div className="max-w-md mx-auto my-12 p-8 rounded-3xl bg-[#11100E] border border-[#2B2722] text-white shadow-2xl text-center space-y-6">
+            <div className="max-w-md mx-auto my-12 p-6 sm:p-8 rounded-3xl bg-[#11100E] border border-[#2B2722] text-white shadow-2xl text-center space-y-6">
               <div className="w-14 h-14 mx-auto rounded-full bg-[#1C1A17] border border-[#3E3832] flex items-center justify-center text-[#C5A880]">
-                <Lock className="w-6 h-6" />
+                <Diamond className="w-6 h-6" />
               </div>
 
               {authStep === 'credentials' && (
@@ -1379,45 +1333,69 @@ export default function App() {
           ) : (
             <div className="space-y-8">
               
-              {/* ADMIN STATS BAR */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-[#11100E] text-white p-5 rounded-2xl border border-[#2B2722] flex items-center justify-between">
+              {/* STATS */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div className="bg-[#11100E] text-white p-4 sm:p-5 rounded-2xl border border-[#2B2722] flex items-center justify-between">
                   <div>
-                    <span className="text-[11px] text-[#8C8275] block font-semibold">סה"כ שווי מלאי</span>
-                    <span className="text-xl font-bold font-mono text-[#C5A880]">₪{totalInventoryValue.toLocaleString()}</span>
+                    <span className="text-[10px] sm:text-[11px] text-[#8C8275] block font-semibold">סה"כ שווי מלאי</span>
+                    <span className="text-base sm:text-xl font-bold font-mono text-[#C5A880]">₪{totalInventoryValue.toLocaleString()}</span>
                   </div>
-                  <DollarSign className="w-8 h-8 text-[#3E3832]" />
+                  <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-[#3E3832]" />
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-[#EDE6DC] flex items-center justify-between">
+                <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#EDE6DC] flex items-center justify-between">
                   <div>
-                    <span className="text-[11px] text-[#8C8275] block font-semibold">פריטים זמינים</span>
-                    <span className="text-xl font-bold text-emerald-600">{activeCount} פריטים</span>
+                    <span className="text-[10px] sm:text-[11px] text-[#8C8275] block font-semibold">פריטים זמינים</span>
+                    <span className="text-base sm:text-xl font-bold text-emerald-600">{activeCount}</span>
                   </div>
-                  <Package className="w-8 h-8 text-emerald-100" />
+                  <Package className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-100" />
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-[#EDE6DC] flex items-center justify-between">
+                <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#EDE6DC] flex items-center justify-between">
                   <div>
-                    <span className="text-[11px] text-[#8C8275] block font-semibold">שמורים ללקוחות</span>
-                    <span className="text-xl font-bold text-amber-600">{reservedCount} פריטים</span>
+                    <span className="text-[10px] sm:text-[11px] text-[#8C8275] block font-semibold">שמורים ללקוחות</span>
+                    <span className="text-base sm:text-xl font-bold text-amber-600">{reservedCount}</span>
                   </div>
-                  <Clock className="w-8 h-8 text-amber-100" />
+                  <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-amber-100" />
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-[#EDE6DC] flex items-center justify-between">
+                <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#EDE6DC] flex items-center justify-between">
                   <div>
-                    <span className="text-[11px] text-[#8C8275] block font-semibold">פריטים שנמכרו</span>
-                    <span className="text-xl font-bold text-rose-600">{soldCount} פריטים</span>
+                    <span className="text-[10px] sm:text-[11px] text-[#8C8275] block font-semibold">נמכרו</span>
+                    <span className="text-base sm:text-xl font-bold text-rose-600">{soldCount}</span>
                   </div>
-                  <Award className="w-8 h-8 text-rose-100" />
+                  <Award className="w-6 h-6 sm:w-8 sm:h-8 text-rose-100" />
                 </div>
+              </div>
+
+              {/* EDIT RUNNING MARQUEE TEXT */}
+              <div className="bg-white p-5 sm:p-6 rounded-3xl border border-[#EDE6DC] shadow-xs space-y-4">
+                <div className="flex items-center gap-2 border-b border-[#EDE6DC] pb-3">
+                  <Sparkles className="w-4 h-4 text-[#9E8255]" />
+                  <h3 className="font-serif font-bold text-base text-[#1C1A17]">עריכת הטקסט הרץ בראש האתר (Ticker)</h3>
+                </div>
+                <form onSubmit={handleSaveMarquee} className="flex flex-col sm:flex-row gap-3">
+                  <input
+                    type="text"
+                    required
+                    value={tempMarqueeInput}
+                    onChange={(e) => setTempMarqueeInput(e.target.value)}
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2] text-xs"
+                  />
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 bg-[#1C1A17] text-white rounded-xl text-xs font-semibold hover:bg-[#332F2A] flex items-center justify-center gap-1.5 shrink-0"
+                  >
+                    <Save className="w-3.5 h-3.5 text-[#C5A880]" />
+                    <span>עדכן טקסט רץ</span>
+                  </button>
+                </form>
               </div>
 
               {/* ACTION BAR */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-[#EDE6DC] shadow-xs">
                 <div>
-                  <h1 className="text-2xl font-serif font-bold text-[#1C1A17]">פאנל ניהול מלאי - Arik Diamonds</h1>
+                  <h1 className="text-xl sm:text-2xl font-serif font-bold text-[#1C1A17]">ניהול מלאי יהלומים - Arik Diamonds</h1>
                   <p className="text-xs text-[#8C8275] mt-0.5">סנכרון מלא ואוטומטי מול מסד הנתונים Supabase</p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -1438,7 +1416,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* ADD PRODUCT FORM */}
+              {/* ADD FORM */}
               <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EDE6DC] shadow-xs space-y-6">
                 <div className="flex items-center gap-2 border-b border-[#EDE6DC] pb-4">
                   <Plus className="w-5 h-5 text-[#9E8255]" />
@@ -1598,7 +1576,7 @@ export default function App() {
                       >
                         בחר קובץ תמונה מהמכשיר
                       </label>
-                      <span className="text-[11px] text-[#8C8275]">פורמטים נתמכים: JPG, PNG, WEBP</span>
+                      <span className="text-[11px] text-[#8C8275]">JPG, PNG, WEBP</span>
                     </div>
 
                     {uploadedImagePreview && (
@@ -1620,7 +1598,7 @@ export default function App() {
                 </form>
               </div>
 
-              {/* PRODUCTS LIST TABLE */}
+              {/* TABLE */}
               <div className="bg-white rounded-3xl border border-[#EDE6DC] shadow-xs overflow-hidden">
                 <div className="p-6 border-b border-[#EDE6DC] flex justify-between items-center">
                   <h3 className="font-serif font-bold text-base text-[#1C1A17]">
@@ -1636,7 +1614,7 @@ export default function App() {
                         <th className="py-3.5 px-4 font-semibold">מק"ט</th>
                         <th className="py-3.5 px-4 font-semibold">כותרת</th>
                         <th className="py-3.5 px-4 font-semibold">סוג</th>
-                        <th className="py-3.5 px-4 font-semibold">צורת חיתוך</th>
+                        <th className="py-3.5 px-4 font-semibold">חיתוך</th>
                         <th className="py-3.5 px-4 font-semibold">קראט</th>
                         <th className="py-3.5 px-4 font-semibold">מחיר</th>
                         <th className="py-3.5 px-4 font-semibold">סטטוס</th>
@@ -1881,7 +1859,7 @@ export default function App() {
       {isMobileFilterOpen && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end lg:hidden">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setIsMobileFilterOpen(false)} />
-          <div className="relative z-50 bg-white rounded-t-3xl max-h-[85vh] overflow-y-auto p-6 space-y-5 shadow-2xl text-xs">
+          <div className="relative z-50 bg-white rounded-t-3xl max-h-[85vh] overflow-y-auto p-6 space-y-5 shadow-2xl text-xs text-right">
             <div className="flex items-center justify-between border-b border-[#EDE6DC] pb-3">
               <div className="flex items-center gap-2 font-serif font-bold text-sm text-[#1C1A17]">
                 <Filter className="w-4 h-4 text-[#9E8255]" />
@@ -1892,30 +1870,6 @@ export default function App() {
               </button>
             </div>
 
-            {/* Shape Mobile */}
-            <div className="space-y-1.5">
-              <label className="font-bold text-[#575047]">צורת חיתוך</label>
-              <div className="grid grid-cols-3 gap-1.5">
-                <button
-                  onClick={() => setSelectedShape('all')}
-                  className={`col-span-3 py-2 rounded-xl text-xs font-semibold ${selectedShape === 'all' ? 'bg-[#1C1A17] text-white' : 'bg-[#FAF8F5] border border-[#D5C7B2]'}`}
-                >
-                  כל הצורות
-                </button>
-                {SHAPES_DATA.map(s => (
-                  <button
-                    key={s.value}
-                    onClick={() => setSelectedShape(s.value)}
-                    className={`py-2 px-1 rounded-xl text-center flex flex-col items-center justify-center ${selectedShape === s.value ? 'bg-[#9E8255] text-white font-bold' : 'bg-[#FAF8F5] border border-[#D5C7B2]'}`}
-                  >
-                    <span className="font-bold text-xs">{s.labelHe}</span>
-                    <span className="text-[9px] opacity-75">{s.labelEn}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Diamond Type Mobile */}
             <div className="space-y-1.5">
               <label className="font-bold text-[#575047]">סוג יהלום</label>
               <div className="grid grid-cols-3 gap-1">
@@ -1940,6 +1894,28 @@ export default function App() {
               </div>
             </div>
 
+            <div className="space-y-1.5">
+              <label className="font-bold text-[#575047]">צורת חיתוך</label>
+              <div className="grid grid-cols-3 gap-1.5">
+                <button
+                  onClick={() => setSelectedShape('all')}
+                  className={`col-span-3 py-2 rounded-xl text-xs font-semibold ${selectedShape === 'all' ? 'bg-[#1C1A17] text-white' : 'bg-[#FAF8F5] border border-[#D5C7B2]'}`}
+                >
+                  כל הצורות
+                </button>
+                {SHAPES_DATA.map(s => (
+                  <button
+                    key={s.value}
+                    onClick={() => setSelectedShape(s.value)}
+                    className={`py-2 px-1 rounded-xl text-center flex flex-col items-center justify-center ${selectedShape === s.value ? 'bg-[#9E8255] text-white font-bold' : 'bg-[#FAF8F5] border border-[#D5C7B2]'}`}
+                  >
+                    <span className="font-bold text-xs">{s.labelHe}</span>
+                    <span className="text-[9px] opacity-75">{s.labelEn}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <button
               onClick={() => setIsMobileFilterOpen(false)}
               className="w-full py-3.5 bg-[#1C1A17] text-white rounded-xl font-bold text-xs uppercase tracking-wider"
@@ -1950,7 +1926,19 @@ export default function App() {
         </div>
       )}
 
-      {/* 5. FOOTER */}
+      {/* 4. FLOATING WHATSAPP BUTTON (BOTTOM LEFT) */}
+      <a
+        href={WHATSAPP_LINK}
+        target="_blank"
+        rel="noreferrer"
+        className="fixed bottom-6 left-6 z-40 bg-[#25D366] text-white p-3.5 sm:px-5 sm:py-3.5 rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all duration-300 flex items-center gap-2 group"
+        aria-label="שיחה בוואטסאפ"
+      >
+        <MessageCircle className="w-6 h-6 fill-white" />
+        <span className="hidden sm:inline font-bold text-xs">וואטסאפ ישיר</span>
+      </a>
+
+      {/* 5. FOOTER (WITH ONLY ADMIN ACCESS LINK) */}
       <footer className="bg-[#11100E] text-[#EDE6DC] border-t border-[#2B2722] mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-right">
@@ -1961,7 +1949,7 @@ export default function App() {
                 <span className="font-serif font-bold text-lg text-white">ARIK YAKOBOV DIAMONDS</span>
               </div>
               <p className="text-xs text-[#D5C7B2]/80 leading-relaxed">
-                ייצור תכשיטים בעיצוב אישית | Lab & Natural Diamonds.
+                ייצור תכשיטים בעיצוב אישי | Lab & Natural Diamonds.
                 <br />
                 חדר עסקאות ישיר בבורסת היהלומים רמת גן, בניין שמשון.
               </p>
@@ -1991,7 +1979,7 @@ export default function App() {
             <span>© 2026 אריק יעקובוב - Arik Yakobov Diamonds. כל הזכויות שמורות.</span>
             <button 
               onClick={() => navigateTo('admin')} 
-              className="hover:text-[#C5A880] transition-colors"
+              className="hover:text-[#C5A880] transition-colors cursor-pointer"
             >
               כניסת ניהול
             </button>
