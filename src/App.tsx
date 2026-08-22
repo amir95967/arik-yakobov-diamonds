@@ -19,7 +19,10 @@ import {
   Sparkles,
   Clock,
   Send,
-  Save
+  Save,
+  ShieldCheck,
+  Award,
+  Calendar
 } from 'lucide-react';
 import { supabase } from './supabase';
 
@@ -64,9 +67,9 @@ export interface DiamondProduct {
 
 const PHONE_NUMBER = '0544847078';
 const DISPLAY_PHONE = '054-4847078';
-const WHATSAPP_LINK = `https://wa.me/972544847078?text=${encodeURIComponent('שלום אריק, הגעתי דרך האתר ואשמח לייעוץ בנוגע ליהלומים ותכשיטים.')}`;
+const WHATSAPP_LINK = `https://wa.me/972544847078?text=${encodeURIComponent('שלום אריק, הגעתי דרך האתר ואשמח לייעוץ בנוגע ליהלומים ותכשיטים בעיצוב אישי.')}`;
 
-const DEFAULT_MARQUEE_TEXT = '✦ Arik Yakobov Diamonds 💎 | ייצור תכשיטים בעיצוב אישי | Lab & Natural Diamonds | 📍 בורסת היהלומים רמת גן, בניין שמשון | 📞 054-4847078 | תעודות גמולוגיות בינלאומיות GIA / IGI | שירות VIP ואחריות מלאה לכל החיים ✦';
+const DEFAULT_MARQUEE_TEXT = '✦ Arik Yakobov Diamonds 💎 | ייצור תכשיטי יוקרה בעיצוב אישי | Lab & Natural Diamonds | 📍 בורסת היהלומים רמת גן, בניין שמשון | 📞 054-4847078 | תעודות גמולוגיות בינלאומיות GIA / IGI ✦';
 
 const SHAPES_DATA: { value: DiamondShape; labelHe: string; labelEn: string }[] = [
   { value: 'Round', labelHe: 'עגול', labelEn: 'Round' },
@@ -81,18 +84,18 @@ const SHAPES_DATA: { value: DiamondShape; labelHe: string; labelEn: string }[] =
 ];
 
 const CATEGORIES_DATA: { value: ProductCategory; labelHe: string }[] = [
-  { value: 'all', labelHe: 'כל הקטלוג' },
+  { value: 'all', labelHe: 'כל הקולקציה' },
   { value: 'engagement', labelHe: 'טבעות אירוסין' },
   { value: 'loose', labelHe: 'יהלומים משוחררים' },
   { value: 'tennis', labelHe: 'צמידי טניס' },
   { value: 'earrings', labelHe: 'עגילי יהלומים' },
-  { value: 'high_jewelry', labelHe: 'תכשיטי יוקרה בעיצוב אישי' },
+  { value: 'high_jewelry', labelHe: 'תכשיטי יוקרה בהתאמה אישית' },
 ];
 
 const INITIAL_PRODUCTS: DiamondProduct[] = [
   {
     id: '1',
-    title: 'טבעת סוליטר קלאסית בשיבוץ יהלום טבעי עגול 1.50 קראט',
+    title: 'טבעת סוליטר קלאסית בשיבוץ יהלום טבעי 1.50 קראט',
     category: 'engagement',
     diamond_type: 'Natural',
     shape: 'Round',
@@ -107,7 +110,7 @@ const INITIAL_PRODUCTS: DiamondProduct[] = [
   },
   {
     id: '2',
-    title: 'טבעת אובל יוקרתית בשיבוץ יהלום 2.05 קראט',
+    title: 'טבעת אובל מלכותית בשיבוץ יהלום 2.05 קראט',
     category: 'engagement',
     diamond_type: 'Lab',
     shape: 'Oval',
@@ -140,6 +143,7 @@ const INITIAL_PRODUCTS: DiamondProduct[] = [
 export default function App() {
   const [currentRoute, setCurrentRoute] = useState<'home' | 'shop' | 'about' | 'contactus' | 'admin'>('home');
   const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(false);
+  const [selectedProductView, setSelectedProductView] = useState<DiamondProduct | null>(null);
 
   const [marqueeText, setMarqueeText] = useState<string>(() => {
     return localStorage.getItem('ay_marquee_text') || DEFAULT_MARQUEE_TEXT;
@@ -401,11 +405,9 @@ export default function App() {
       }
     }
 
-    const generatedSku = `AY-${Date.now().toString().slice(-6)}`;
-
     const { data, error } = await supabase.from('products').insert([
       {
-        sku: generatedSku,
+        sku: `AY-${Date.now().toString().slice(-6)}`,
         title: newProduct.title,
         category: newProduct.category,
         diamond_type: newProduct.diamond_type,
@@ -441,7 +443,7 @@ export default function App() {
       });
       setUploadedImagePreview(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
-      alert('הפריט נוסף ונשמר בהצלחה!');
+      alert('הפריט נוסף בהצלחה לקולקציה!');
     }
   };
 
@@ -504,7 +506,7 @@ export default function App() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('האם למחוק פריט זה מהאתר?')) return;
+    if (!window.confirm('האם למחוק פריט זה מהגלריה?')) return;
     const { error } = await supabase.from('products').delete().eq('id', id);
     if (error) {
       console.error(error);
@@ -535,7 +537,7 @@ export default function App() {
   });
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5] text-[#1C1A17] font-sans flex flex-col antialiased overflow-x-hidden" dir="rtl">
+    <div className="min-h-screen bg-[#FAF8F5] text-[#1F1C18] font-sans flex flex-col antialiased overflow-x-hidden selection:bg-[#B39359] selection:text-white" dir="rtl">
       
       {/* 1. RUNNING TICKER MARQUEE */}
       <style>{`
@@ -546,50 +548,52 @@ export default function App() {
         .marquee-track {
           display: flex;
           width: max-content;
-          animation: customMarquee 28s linear infinite;
+          animation: customMarquee 32s linear infinite;
         }
         .marquee-track:hover {
           animation-play-state: paused;
         }
       `}</style>
 
-      <div className="bg-[#11100E] text-[#D5C7B2] py-2.5 overflow-hidden border-b border-[#2B2722] relative select-none">
+      <div className="bg-[#141210] text-[#D8C7B0] py-2.5 overflow-hidden border-b border-[#282420] relative select-none">
         <div className="marquee-track">
-          <div className="flex items-center gap-12 text-[11px] sm:text-xs font-medium tracking-wide whitespace-nowrap pl-6">
+          <div className="flex items-center gap-12 text-[11px] sm:text-xs font-medium tracking-wider whitespace-nowrap pl-6">
             <span>{marqueeText}</span>
           </div>
-          <div className="flex items-center gap-12 text-[11px] sm:text-xs font-medium tracking-wide whitespace-nowrap pl-6">
+          <div className="flex items-center gap-12 text-[11px] sm:text-xs font-medium tracking-wider whitespace-nowrap pl-6">
             <span>{marqueeText}</span>
           </div>
         </div>
       </div>
 
-      {/* 2. MAIN HEADER */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#EDE6DC]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      {/* 2. LUXURY BOUTIQUE HEADER */}
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#EAE3D6] transition-all">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 h-20 sm:h-24 flex items-center justify-between">
           
+          {/* LOGO */}
           <div 
             onClick={() => navigateTo('home')} 
-            className="flex items-center gap-2.5 sm:gap-3 cursor-pointer group select-none"
+            className="flex items-center gap-3 cursor-pointer group select-none"
           >
-            <div className="w-10 h-10 rounded-2xl bg-[#1C1A17] flex items-center justify-center text-[#C5A880] shadow-sm transition-transform duration-300 group-hover:scale-105">
-              <Diamond className="w-5 h-5" />
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#1A1815] flex items-center justify-center text-[#B39359] border border-[#B39359]/30 transition-transform duration-300 group-hover:scale-105 shadow-xs">
+              <Diamond className="w-5 h-5 stroke-[1.5]" />
             </div>
             <div className="flex flex-col text-right">
-              <span className="text-base sm:text-xl font-serif font-bold tracking-tight text-[#1C1A17] leading-none">
+              <span className="text-lg sm:text-2xl font-serif font-bold tracking-wider text-[#141210] leading-none">
                 ARIK YAKOBOV
               </span>
-              <span className="text-[8px] sm:text-[9px] tracking-[0.25em] text-[#8C8275] uppercase font-bold mt-1">
-                DIAMONDS & JEWELRY
+              <span className="text-[8px] sm:text-[9px] tracking-[0.3em] text-[#8F8171] uppercase font-semibold mt-1">
+                HAUTE JOAILLERIE & DIAMONDS
               </span>
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center gap-8 text-xs font-semibold tracking-wider text-[#575047]">
+          {/* DESKTOP NAVIGATION */}
+          <nav className="hidden md:flex items-center gap-8 text-xs font-medium tracking-widest uppercase text-[#544B41]">
             <button
               onClick={() => navigateTo('home')}
-              className={`hover:text-[#9E8255] transition-colors py-1 relative ${
-                currentRoute === 'home' ? 'text-[#9E8255] font-bold after:content-[""] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-[#9E8255]' : ''
+              className={`hover:text-[#B39359] transition-colors py-2 relative ${
+                currentRoute === 'home' ? 'text-[#B39359] font-bold after:content-[""] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1.5px] after:bg-[#B39359]' : ''
               }`}
             >
               דף הבית
@@ -599,34 +603,34 @@ export default function App() {
               <button
                 onClick={() => navigateTo('shop')}
                 onMouseEnter={() => setIsShopDropdownOpen(true)}
-                className={`flex items-center gap-1 hover:text-[#9E8255] transition-colors py-1 relative ${
-                  currentRoute === 'shop' ? 'text-[#9E8255] font-bold after:content-[""] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-[#9E8255]' : ''
+                className={`flex items-center gap-1 hover:text-[#B39359] transition-colors py-2 relative ${
+                  currentRoute === 'shop' ? 'text-[#B39359] font-bold after:content-[""] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1.5px] after:bg-[#B39359]' : ''
                 }`}
               >
-                <span>קנייה וקטלוג</span>
+                <span>הקולקציה</span>
                 <ChevronDown className="w-3.5 h-3.5 transition-transform group-hover:rotate-180" />
               </button>
 
               {isShopDropdownOpen && (
                 <div 
                   onMouseLeave={() => setIsShopDropdownOpen(false)}
-                  className="absolute top-full right-0 w-60 bg-white border border-[#EDE6DC] rounded-2xl shadow-xl p-2.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150 text-right"
+                  className="absolute top-full right-0 w-64 bg-white border border-[#EAE3D6] rounded-2xl shadow-xl p-2.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150 text-right"
                 >
-                  <div className="text-[10px] font-bold text-[#8C8275] uppercase px-3 py-1.5 border-b border-[#FAF8F5]">
-                    קטגוריות ראשיות
+                  <div className="text-[10px] font-bold text-[#8F8171] uppercase tracking-wider px-3 py-1.5 border-b border-[#FAF8F5]">
+                    קטגוריות נבחרות
                   </div>
                   {CATEGORIES_DATA.map(cat => (
                     <button
                       key={cat.value}
                       onClick={() => navigateTo('shop', cat.value)}
-                      className={`w-full text-right px-3 py-2 rounded-xl text-xs font-medium transition-colors flex items-center justify-between ${
+                      className={`w-full text-right px-3.5 py-2.5 rounded-xl text-xs transition-colors flex items-center justify-between ${
                         selectedCategory === cat.value && currentRoute === 'shop'
-                          ? 'bg-[#F4EFE6] text-[#9E8255] font-bold'
-                          : 'hover:bg-[#FAF8F5] text-[#1C1A17]'
+                          ? 'bg-[#F5F0E6] text-[#B39359] font-bold'
+                          : 'hover:bg-[#FAF8F5] text-[#1F1C18]'
                       }`}
                     >
                       <span>{cat.labelHe}</span>
-                      {selectedCategory === cat.value && currentRoute === 'shop' && <Check className="w-3.5 h-3.5 text-[#9E8255]" />}
+                      {selectedCategory === cat.value && currentRoute === 'shop' && <Check className="w-3.5 h-3.5 text-[#B39359]" />}
                     </button>
                   ))}
                 </div>
@@ -635,35 +639,36 @@ export default function App() {
 
             <button
               onClick={() => navigateTo('about')}
-              className={`hover:text-[#9E8255] transition-colors py-1 relative ${
-                currentRoute === 'about' ? 'text-[#9E8255] font-bold after:content-[""] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-[#9E8255]' : ''
+              className={`hover:text-[#B39359] transition-colors py-2 relative ${
+                currentRoute === 'about' ? 'text-[#B39359] font-bold after:content-[""] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1.5px] after:bg-[#B39359]' : ''
               }`}
             >
-              אודות
+              אודות הבוטיק
             </button>
 
             <button
               onClick={() => navigateTo('contactus')}
-              className={`hover:text-[#9E8255] transition-colors py-1 relative ${
-                currentRoute === 'contactus' ? 'text-[#9E8255] font-bold after:content-[""] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-[#9E8255]' : ''
+              className={`hover:text-[#B39359] transition-colors py-2 relative ${
+                currentRoute === 'contactus' ? 'text-[#B39359] font-bold after:content-[""] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1.5px] after:bg-[#B39359]' : ''
               }`}
             >
-              יצירת קשר
+              תיאום פגישה בבורסה
             </button>
           </nav>
 
+          {/* VIP BOOKING BUTTON & MOBILE MENU */}
           <div className="flex items-center gap-3">
             <a
               href={`tel:${PHONE_NUMBER}`}
-              className="hidden sm:flex items-center gap-2 bg-[#1C1A17] text-white px-4 py-2.5 rounded-xl text-xs font-semibold tracking-wider hover:bg-[#332F2A] transition-all shadow-xs"
+              className="hidden sm:flex items-center gap-2.5 bg-[#141210] text-[#D8C7B0] border border-[#B39359]/40 px-5 py-2.5 rounded-full text-xs font-semibold tracking-wider hover:bg-[#201D19] transition-all shadow-xs"
             >
-              <Phone className="w-3.5 h-3.5 text-[#C5A880]" />
+              <Phone className="w-3.5 h-3.5 text-[#B39359]" />
               <span>{DISPLAY_PHONE}</span>
             </a>
 
             <button
               onClick={() => setIsMobileNavOpen(true)}
-              className="md:hidden p-2.5 rounded-xl bg-[#FAF8F5] border border-[#EDE6DC] text-[#1C1A17]"
+              className="md:hidden p-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6] text-[#141210]"
               aria-label="תפריט"
             >
               <Menu className="w-5 h-5" />
@@ -676,68 +681,68 @@ export default function App() {
       {isMobileNavOpen && (
         <div className="fixed inset-0 z-50 flex">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setIsMobileNavOpen(false)} />
-          <div className="relative z-50 w-4/5 max-w-xs bg-white h-full shadow-2xl p-6 flex flex-col justify-between overflow-y-auto">
+          <div className="relative z-50 w-4/5 max-w-xs bg-white h-full shadow-2xl p-6 flex flex-col justify-between overflow-y-auto text-right">
             <div className="space-y-6">
-              <div className="flex items-center justify-between border-b border-[#EDE6DC] pb-4">
+              <div className="flex items-center justify-between border-b border-[#EAE3D6] pb-4">
                 <div className="flex items-center gap-2">
-                  <Diamond className="w-5 h-5 text-[#9E8255]" />
-                  <span className="font-serif font-bold text-sm text-[#1C1A17]">תפריט ניווט</span>
+                  <Diamond className="w-5 h-5 text-[#B39359]" />
+                  <span className="font-serif font-bold text-sm text-[#141210]">ARIK YAKOBOV</span>
                 </div>
                 <button onClick={() => setIsMobileNavOpen(false)} className="p-1 rounded-full hover:bg-[#FAF8F5]">
-                  <X className="w-5 h-5 text-[#8C8275]" />
+                  <X className="w-5 h-5 text-[#8F8171]" />
                 </button>
               </div>
 
-              <div className="space-y-1 text-sm font-semibold">
+              <div className="space-y-1.5 text-sm font-semibold">
                 <button 
                   onClick={() => navigateTo('home')} 
-                  className={`w-full text-right py-2.5 px-3 rounded-xl ${currentRoute === 'home' ? 'bg-[#F4EFE6] text-[#9E8255]' : 'hover:bg-[#FAF8F5]'}`}
+                  className={`w-full text-right py-2.5 px-3 rounded-xl ${currentRoute === 'home' ? 'bg-[#F5F0E6] text-[#B39359]' : 'hover:bg-[#FAF8F5]'}`}
                 >
                   דף הבית
                 </button>
                 <button 
                   onClick={() => navigateTo('shop')} 
-                  className={`w-full text-right py-2.5 px-3 rounded-xl ${currentRoute === 'shop' ? 'bg-[#F4EFE6] text-[#9E8255]' : 'hover:bg-[#FAF8F5]'}`}
+                  className={`w-full text-right py-2.5 px-3 rounded-xl ${currentRoute === 'shop' ? 'bg-[#F5F0E6] text-[#B39359]' : 'hover:bg-[#FAF8F5]'}`}
                 >
-                  כל הקטלוג והקנייה
+                  הקולקציה המלאה
                 </button>
                 <button 
                   onClick={() => navigateTo('about')} 
-                  className={`w-full text-right py-2.5 px-3 rounded-xl ${currentRoute === 'about' ? 'bg-[#F4EFE6] text-[#9E8255]' : 'hover:bg-[#FAF8F5]'}`}
+                  className={`w-full text-right py-2.5 px-3 rounded-xl ${currentRoute === 'about' ? 'bg-[#F5F0E6] text-[#B39359]' : 'hover:bg-[#FAF8F5]'}`}
                 >
-                  אודות אריק יעקובוב
+                  אודות הבוטיק
                 </button>
                 <button 
                   onClick={() => navigateTo('contactus')} 
-                  className={`w-full text-right py-2.5 px-3 rounded-xl ${currentRoute === 'contactus' ? 'bg-[#F4EFE6] text-[#9E8255]' : 'hover:bg-[#FAF8F5]'}`}
+                  className={`w-full text-right py-2.5 px-3 rounded-xl ${currentRoute === 'contactus' ? 'bg-[#F5F0E6] text-[#B39359]' : 'hover:bg-[#FAF8F5]'}`}
                 >
-                  יצירת קשר ותיאום פגישה
+                  תיאום פגישה בבורסה
                 </button>
               </div>
 
-              <div className="pt-3 border-t border-[#EDE6DC] space-y-1">
-                <p className="text-[11px] font-bold text-[#8C8275] uppercase px-3 mb-1">קטגוריות תכשיטים</p>
+              <div className="pt-3 border-t border-[#EAE3D6] space-y-1">
+                <p className="text-[11px] font-bold text-[#8F8171] uppercase tracking-wider px-3 mb-1">קטגוריות</p>
                 {CATEGORIES_DATA.map(cat => (
                   <button
                     key={cat.value}
                     onClick={() => navigateTo('shop', cat.value)}
-                    className="w-full text-right py-2 px-3 rounded-lg text-xs text-[#575047] hover:bg-[#FAF8F5] flex items-center justify-between"
+                    className="w-full text-right py-2 px-3 rounded-lg text-xs text-[#544B41] hover:bg-[#FAF8F5] flex items-center justify-between"
                   >
                     <span>{cat.labelHe}</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-[#D5C7B2] rotate-180" />
+                    <ArrowRight className="w-3.5 h-3.5 text-[#D8C7B0] rotate-180" />
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="border-t border-[#EDE6DC] pt-4">
+            <div className="border-t border-[#EAE3D6] pt-4">
               <a
                 href={WHATSAPP_LINK}
                 target="_blank"
                 rel="noreferrer"
-                className="w-full py-3 bg-[#1C1A17] text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 shadow-xs"
+                className="w-full py-3 bg-[#141210] text-[#D8C7B0] border border-[#B39359]/30 rounded-xl text-xs font-semibold flex items-center justify-center gap-2"
               >
-                <Phone className="w-4 h-4 text-[#C5A880]" />
+                <Phone className="w-4 h-4 text-[#B39359]" />
                 <span>וואטסאפ: {DISPLAY_PHONE}</span>
               </a>
             </div>
@@ -745,100 +750,116 @@ export default function App() {
         </div>
       )}
 
-      {/* 3. DYNAMIC VIEWS */}
+      {/* 3. DYNAMIC CONTENT VIEWS */}
+      
+      {/* HOME PAGE */}
       {currentRoute === 'home' && (
         <main className="flex-1">
-          <div className="relative bg-[#11100E] text-white py-16 sm:py-28 px-4 border-b border-[#2B2722]">
-            <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-              <div className="space-y-6 text-right z-10">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#2A2622] border border-[#3E3832] text-[#C5A880] text-xs font-semibold">
-                  <Sparkles className="w-3.5 h-3.5" />
+          
+          {/* HERO SECTION */}
+          <section className="relative bg-[#141210] text-white py-20 sm:py-32 px-4 sm:px-8 border-b border-[#282420] overflow-hidden">
+            <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+              <div className="lg:col-span-7 space-y-6 text-right z-10">
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#201D19] border border-[#B39359]/30 text-[#D8C7B0] text-xs font-medium">
+                  <Sparkles className="w-3.5 h-3.5 text-[#B39359]" />
                   <span>ייצור תכשיטים בעיצוב אישי | Lab & Natural Diamonds</span>
                 </div>
-                <h1 className="text-3xl sm:text-5xl lg:text-6xl font-serif font-bold leading-tight">
-                  יהלומים נדירים בבורסת היהלומים
+                <h1 className="text-3xl sm:text-5xl lg:text-6xl font-serif font-bold leading-tight tracking-wide text-[#FAF8F5]">
+                  היהלומים הנדירים של בורסת היהלומים
                 </h1>
-                <p className="text-xs sm:text-base text-[#D5C7B2] max-w-lg leading-relaxed">
-                  הצטרפו לפגישה אישית בחדר העסקאות בבניין שמשון. רכישת יהלומים טבעיים ויהלומי מעבדה ללא פערי תיווך, בדירוג המחמיר בעולם (GIA / IGI).
+                <p className="text-xs sm:text-base text-[#D8C7B0]/90 max-w-xl leading-relaxed font-light">
+                  חוויית בוטיק יוקרתית בחדר העסקאות בבניין שמשון. רכישת יהלומים מלוטשים ותכשיטים בעיצוב אישי, ללא פערי תיווך, בדירוג הבינלאומי המוביל GIA / IGI.
                 </p>
-                <div className="flex flex-wrap gap-3 pt-2">
+                <div className="flex flex-wrap gap-4 pt-4">
                   <button
                     onClick={() => navigateTo('shop')}
-                    className="px-6 sm:px-8 py-3.5 bg-[#C5A880] text-[#11100E] font-bold rounded-xl text-xs uppercase tracking-wider hover:bg-[#b0936b] transition-colors"
+                    className="px-8 py-4 bg-[#B39359] text-[#141210] font-bold rounded-full text-xs uppercase tracking-widest hover:bg-[#a18349] transition-all shadow-lg hover:shadow-[#B39359]/20"
                   >
-                    צפייה בקטלוג המוצרים
+                    לצפייה בקולקציה
                   </button>
                   <button
                     onClick={() => navigateTo('contactus')}
-                    className="px-5 sm:px-6 py-3.5 bg-[#221F1B] border border-[#3E3832] text-white font-semibold rounded-xl text-xs hover:bg-[#2B2722] transition-colors"
+                    className="px-7 py-4 bg-transparent border border-[#B39359]/50 text-[#D8C7B0] font-medium rounded-full text-xs uppercase tracking-wider hover:bg-[#201D19] transition-all"
                   >
-                    תיאום פגישה בבורסה
+                    תיאום פגישה אישית בבורסה
                   </button>
                 </div>
               </div>
 
-              <div className="relative z-10 flex justify-center">
-                <div className="w-full max-w-md aspect-square rounded-3xl overflow-hidden border border-[#3E3832] shadow-2xl relative">
+              <div className="lg:col-span-5 relative z-10 flex justify-center">
+                <div className="w-full max-w-md aspect-4/5 rounded-3xl overflow-hidden border border-[#B39359]/30 shadow-2xl relative group">
                   <img 
-                    src="https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=1000&q=85" 
-                    alt="Arik Yakobov Diamond" 
-                    className="w-full h-full object-cover"
+                    src="https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=1200&q=90" 
+                    alt="Arik Yakobov Haute Diamonds" 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-6 text-right">
-                    <span className="text-[#C5A880] text-xs font-mono">ARIK YAKOBOV</span>
-                    <h3 className="font-serif font-bold text-white text-base sm:text-lg">בניין שמשון, בורסת היהלומים רמת גן</h3>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-8 text-right">
+                    <span className="text-[#B39359] text-xs font-mono tracking-widest uppercase">בניין שמשון, רמת גן</span>
+                    <h3 className="font-serif font-bold text-white text-xl sm:text-2xl mt-1">חדר עסקאות VIP</h3>
+                    <p className="text-xs text-[#D8C7B0]/80 mt-1">מפגש אישי והתאמה מושלמת של יהלום ועיצוב</p>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+          </section>
 
-          <div className="max-w-7xl mx-auto px-4 py-12">
-            <h2 className="text-center font-serif text-xl sm:text-2xl font-bold mb-8 text-[#1C1A17]">קטגוריות נבחרות</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+          {/* SHOWROOM CATEGORIES */}
+          <section className="max-w-7xl mx-auto px-4 sm:px-8 py-16 sm:py-24">
+            <div className="text-center space-y-3 mb-12">
+              <span className="text-xs font-mono text-[#B39359] tracking-widest uppercase">קטלוג נבחר</span>
+              <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#141210]">קולקציות הבוטיק</h2>
+              <div className="w-12 h-0.5 bg-[#B39359] mx-auto mt-2" />
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
               {CATEGORIES_DATA.filter(c => c.value !== 'all').map(cat => (
                 <div
                   key={cat.value}
                   onClick={() => navigateTo('shop', cat.value)}
-                  className="bg-white p-4 sm:p-5 rounded-2xl border border-[#EDE6DC] text-center hover:border-[#9E8255] hover:shadow-md transition-all cursor-pointer group"
+                  className="bg-white p-6 rounded-2xl border border-[#EAE3D6] text-center hover:border-[#B39359] hover:shadow-lg transition-all duration-300 cursor-pointer group flex flex-col justify-between"
                 >
-                  <div className="w-10 h-10 mx-auto rounded-full bg-[#FAF8F5] flex items-center justify-center text-[#9E8255] mb-2 sm:mb-3 group-hover:bg-[#1C1A17] group-hover:text-[#C5A880] transition-colors">
-                    <Diamond className="w-5 h-5" />
+                  <div className="w-12 h-12 mx-auto rounded-full bg-[#FAF8F5] border border-[#EAE3D6] flex items-center justify-center text-[#B39359] mb-4 group-hover:bg-[#141210] group-hover:border-[#B39359] transition-colors">
+                    <Diamond className="w-5 h-5 stroke-[1.5]" />
                   </div>
-                  <h4 className="font-bold text-xs text-[#1C1A17]">{cat.labelHe}</h4>
+                  <h4 className="font-serif font-bold text-xs sm:text-sm text-[#141210] leading-snug">{cat.labelHe}</h4>
+                  <span className="text-[10px] text-[#B39359] font-medium mt-2 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    צפייה בפריטים <ArrowRight className="w-3 h-3 rotate-180" />
+                  </span>
                 </div>
               ))}
             </div>
-          </div>
+          </section>
         </main>
       )}
 
-      {/* SHOP VIEW */}
+      {/* SHOWROOM / CATALOG PAGE */}
       {currentRoute === 'shop' && (
-        <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-8 py-10 w-full">
           
-          <div className="mb-6 flex items-center justify-between">
-            <div className="text-right">
-              <h1 className="text-xl sm:text-3xl font-serif font-bold text-[#1C1A17]">קטלוג יהלומים ותכשיטי יוקרה</h1>
-              <p className="text-xs text-[#8C8275] mt-1">בורסת היהלומים רמת גן, בניין שמשון</p>
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#EAE3D6] pb-6 text-right">
+            <div>
+              <span className="text-xs font-mono text-[#B39359] tracking-widest uppercase">גלריית יוקרה</span>
+              <h1 className="text-2xl sm:text-4xl font-serif font-bold text-[#141210] mt-1">הקולקציה המלאה</h1>
+              <p className="text-xs text-[#8F8171] mt-1">בורסת היהלומים רמת גן, בניין שמשון</p>
             </div>
+            
             <button
               onClick={() => setIsMobileFilterOpen(true)}
-              className="lg:hidden px-4 py-2 bg-[#1C1A17] text-white rounded-xl text-xs font-semibold flex items-center gap-2"
+              className="lg:hidden self-start px-5 py-2.5 bg-[#141210] text-[#D8C7B0] rounded-full text-xs font-semibold flex items-center gap-2 border border-[#B39359]/30"
             >
-              <SlidersHorizontal className="w-4 h-4 text-[#C5A880]" />
-              <span>מסננים ({filteredProducts.length})</span>
+              <SlidersHorizontal className="w-4 h-4 text-[#B39359]" />
+              <span>סינון והתאמת פריטים ({filteredProducts.length})</span>
             </button>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-10 items-start">
             
             {/* RIGHT SIDEBAR FILTERS (DESKTOP) */}
-            <aside className="hidden lg:block lg:col-span-1 bg-white p-6 rounded-3xl border border-[#EDE6DC] shadow-xs space-y-6 sticky top-28 text-xs text-right">
-              <div className="flex items-center justify-between border-b border-[#EDE6DC] pb-4">
-                <div className="flex items-center gap-2 font-serif font-bold text-sm text-[#1C1A17]">
-                  <Filter className="w-4 h-4 text-[#9E8255]" />
-                  <span>סינון מתקדם ומדויק</span>
+            <aside className="hidden lg:block lg:col-span-1 bg-white p-6 rounded-3xl border border-[#EAE3D6] shadow-xs space-y-6 sticky top-28 text-xs text-right">
+              <div className="flex items-center justify-between border-b border-[#EAE3D6] pb-4">
+                <div className="flex items-center gap-2 font-serif font-bold text-sm text-[#141210]">
+                  <Filter className="w-4 h-4 text-[#B39359]" />
+                  <span>סינון והתאמת תכשיט</span>
                 </div>
                 <button
                   onClick={() => {
@@ -851,44 +872,44 @@ export default function App() {
                     setPriceRange(100000);
                     setMinCarat(0.3);
                   }}
-                  className="text-[11px] text-[#9E8255] hover:underline"
+                  className="text-[11px] text-[#B39359] hover:underline"
                 >
                   איפוס
                 </button>
               </div>
 
               <div className="space-y-1.5">
-                <label className="font-semibold text-[#575047]">חיפוש כותרת או דגם</label>
+                <label className="font-semibold text-[#544B41]">חיפוש חופשי</label>
                 <div className="relative">
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="מרקיזה, סוליטר, טבעת..."
-                    className="w-full pr-8 pl-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2] text-xs focus:outline-none focus:border-[#9E8255]"
+                    placeholder="סוליטר, מרקיזה, אובל..."
+                    className="w-full pr-8 pl-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6] text-xs focus:outline-none focus:border-[#B39359]"
                   />
-                  <Search className="w-3.5 h-3.5 text-[#8C8275] absolute right-2.5 top-2.5" />
+                  <Search className="w-3.5 h-3.5 text-[#8F8171] absolute right-2.5 top-2.5" />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="font-semibold text-[#575047]">סוג היהלום</label>
+                <label className="font-semibold text-[#544B41]">סוג היהלום</label>
                 <div className="grid grid-cols-3 gap-1">
                   <button
                     onClick={() => setSelectedDiamondType('all')}
-                    className={`py-1.5 rounded-lg font-medium text-[11px] ${selectedDiamondType === 'all' ? 'bg-[#1C1A17] text-white' : 'bg-[#FAF8F5] border border-[#D5C7B2]'}`}
+                    className={`py-2 rounded-xl font-medium text-[11px] transition-all ${selectedDiamondType === 'all' ? 'bg-[#141210] text-white' : 'bg-[#FAF8F5] border border-[#EAE3D6]'}`}
                   >
                     הכל
                   </button>
                   <button
                     onClick={() => setSelectedDiamondType('Natural')}
-                    className={`py-1.5 rounded-lg font-medium text-[11px] ${selectedDiamondType === 'Natural' ? 'bg-[#9E8255] text-white font-bold' : 'bg-[#FAF8F5] border border-[#D5C7B2]'}`}
+                    className={`py-2 rounded-xl font-medium text-[11px] transition-all ${selectedDiamondType === 'Natural' ? 'bg-[#B39359] text-white font-bold' : 'bg-[#FAF8F5] border border-[#EAE3D6]'}`}
                   >
                     טבעי
                   </button>
                   <button
                     onClick={() => setSelectedDiamondType('Lab')}
-                    className={`py-1.5 rounded-lg font-medium text-[11px] ${selectedDiamondType === 'Lab' ? 'bg-[#9E8255] text-white font-bold' : 'bg-[#FAF8F5] border border-[#D5C7B2]'}`}
+                    className={`py-2 rounded-xl font-medium text-[11px] transition-all ${selectedDiamondType === 'Lab' ? 'bg-[#B39359] text-white font-bold' : 'bg-[#FAF8F5] border border-[#EAE3D6]'}`}
                   >
                     מעבדה
                   </button>
@@ -896,29 +917,29 @@ export default function App() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="font-semibold text-[#575047]">קטגוריה</label>
+                <label className="font-semibold text-[#544B41]">קטגוריית תכשיט</label>
                 <div className="space-y-1">
                   {CATEGORIES_DATA.map(cat => (
                     <button
                       key={cat.value}
                       onClick={() => setSelectedCategory(cat.value)}
-                      className={`w-full text-right px-3 py-1.5 rounded-lg transition-colors flex items-center justify-between ${
-                        selectedCategory === cat.value ? 'bg-[#F4EFE6] text-[#9E8255] font-bold' : 'hover:bg-[#FAF8F5] text-[#575047]'
+                      className={`w-full text-right px-3.5 py-2 rounded-xl transition-colors flex items-center justify-between ${
+                        selectedCategory === cat.value ? 'bg-[#F5F0E6] text-[#B39359] font-bold' : 'hover:bg-[#FAF8F5] text-[#544B41]'
                       }`}
                     >
                       <span>{cat.labelHe}</span>
-                      {selectedCategory === cat.value && <Check className="w-3 h-3 text-[#9E8255]" />}
+                      {selectedCategory === cat.value && <Check className="w-3.5 h-3.5 text-[#B39359]" />}
                     </button>
                   ))}
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="font-semibold text-[#575047]">צורת חיתוך (בעברית)</label>
+                <label className="font-semibold text-[#544B41]">צורת חיתוך היהלום</label>
                 <div className="grid grid-cols-3 gap-1">
                   <button
                     onClick={() => setSelectedShape('all')}
-                    className={`col-span-3 py-1 rounded-lg text-[11px] font-semibold ${selectedShape === 'all' ? 'bg-[#1C1A17] text-white' : 'bg-[#FAF8F5] border border-[#D5C7B2]'}`}
+                    className={`col-span-3 py-1.5 rounded-xl text-[11px] font-semibold ${selectedShape === 'all' ? 'bg-[#141210] text-white' : 'bg-[#FAF8F5] border border-[#EAE3D6]'}`}
                   >
                     כל הצורות
                   </button>
@@ -926,8 +947,8 @@ export default function App() {
                     <button
                       key={s.value}
                       onClick={() => setSelectedShape(s.value)}
-                      className={`py-1.5 px-1 rounded-lg text-center flex flex-col items-center justify-center ${
-                        selectedShape === s.value ? 'bg-[#9E8255] text-white font-bold' : 'bg-[#FAF8F5] border border-[#D5C7B2] text-[#575047]'
+                      className={`py-2 px-1 rounded-xl text-center flex flex-col items-center justify-center transition-all ${
+                        selectedShape === s.value ? 'bg-[#B39359] text-white font-bold' : 'bg-[#FAF8F5] border border-[#EAE3D6] text-[#544B41]'
                       }`}
                     >
                       <span className="font-bold text-[11px]">{s.labelHe}</span>
@@ -939,8 +960,8 @@ export default function App() {
 
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
-                  <span className="font-semibold text-[#575047]">עד תקציב:</span>
-                  <span className="font-bold text-[#9E8255]">₪{priceRange.toLocaleString()}</span>
+                  <span className="font-semibold text-[#544B41]">עד תקציב:</span>
+                  <span className="font-bold text-[#B39359]">₪{priceRange.toLocaleString()}</span>
                 </div>
                 <input
                   type="range"
@@ -949,110 +970,112 @@ export default function App() {
                   step="2500"
                   value={priceRange}
                   onChange={(e) => setPriceRange(Number(e.target.value))}
-                  className="w-full accent-[#9E8255] cursor-pointer"
+                  className="w-full accent-[#B39359] cursor-pointer"
                 />
               </div>
             </aside>
 
-            {/* PRODUCT CARDS */}
+            {/* PRODUCT GRID SHOWROOM */}
             <div className="lg:col-span-3 space-y-6">
               
-              <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-[#EDE6DC] text-xs">
+              <div className="flex items-center justify-between text-xs text-[#8F8171] border-b border-[#EAE3D6] pb-3">
                 <div>
-                  <span className="font-bold text-[#1C1A17]">{filteredProducts.length}</span> מוצרים נמצאו
+                  מוצגים <span className="font-bold text-[#141210]">{filteredProducts.length}</span> פריטים ייחודיים
                 </div>
-                <div className="text-[#8C8275]">
-                  בורסת היהלומים רמת גן, בניין שמשון
+                <div>
+                  כל התכשיטים מיוצרים ומלוטשים בבורסת היהלומים
                 </div>
               </div>
 
               {filteredProducts.length === 0 ? (
-                <div className="bg-white rounded-3xl border border-[#EDE6DC] p-12 text-center space-y-4">
-                  <Diamond className="w-12 h-12 text-[#D5C7B2] mx-auto" />
-                  <h3 className="font-serif font-bold text-lg text-[#1C1A17]">לא נמצאו פריטים במסננים אלו</h3>
-                  <p className="text-xs text-[#8C8275]">ניתן לאפס את המסננים או ליצור קשר ישיר לייצור תכשיט בעיצוב אישי.</p>
+                <div className="bg-white rounded-3xl border border-[#EAE3D6] p-12 text-center space-y-4">
+                  <Diamond className="w-12 h-12 text-[#EAE3D6] mx-auto" />
+                  <h3 className="font-serif font-bold text-lg text-[#141210]">לא נמצאו פריטים תואמים</h3>
+                  <p className="text-xs text-[#8F8171]">ניתן לאפס את המסננים או לפנות אלינו לייצור תכשיט מותאם אישית מאפס.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-8">
                   {filteredProducts.map(product => {
                     const shapeObj = SHAPES_DATA.find(s => s.value === product.shape);
                     return (
                       <div 
                         key={product.id}
-                        className="bg-white rounded-3xl border border-[#EDE6DC] overflow-hidden shadow-xs hover:shadow-xl transition-all duration-300 group flex flex-col justify-between"
+                        onClick={() => setSelectedProductView(product)}
+                        className="bg-white rounded-3xl border border-[#EAE3D6] overflow-hidden shadow-xs hover:shadow-2xl transition-all duration-500 group flex flex-col justify-between cursor-pointer"
                       >
                         <div>
-                          <div className="relative aspect-square overflow-hidden bg-[#F4EFE6]">
+                          {/* Image Box */}
+                          <div className="relative aspect-4/5 overflow-hidden bg-[#FAF8F5]">
                             <img
                               src={product.image}
                               alt={product.title}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                             />
                             
-                            <div className="absolute top-3 right-3 flex items-center gap-1.5">
-                              <span className="px-3 py-1 rounded-full bg-white/95 backdrop-blur-xs text-[11px] font-bold text-[#1C1A17] shadow-xs">
+                            {/* Shape & Type Badges */}
+                            <div className="absolute top-4 right-4 flex items-center gap-1.5">
+                              <span className="px-3 py-1 rounded-full bg-white/95 backdrop-blur-md text-[11px] font-bold text-[#141210] shadow-xs">
                                 {shapeObj ? shapeObj.labelHe : product.shape}
                               </span>
                               {product.diamond_type && (
-                                <span className={`px-2 py-1 rounded-full text-[10px] font-bold text-white ${product.diamond_type === 'Natural' ? 'bg-[#1C1A17]' : 'bg-[#9E8255]'}`}>
+                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold text-white tracking-wider ${product.diamond_type === 'Natural' ? 'bg-[#141210]' : 'bg-[#B39359]'}`}>
                                   {product.diamond_type === 'Natural' ? 'טבעי' : 'מעבדה'}
                                 </span>
                               )}
                             </div>
 
+                            {/* Status Overlay */}
                             {product.status !== 'available' && (
                               <div className="absolute inset-0 bg-black/50 backdrop-blur-2xs flex items-center justify-center">
-                                <span className="px-4 py-1.5 rounded-full bg-white text-[#1C1A17] text-xs font-bold uppercase tracking-wider">
+                                <span className="px-5 py-2 rounded-full bg-white text-[#141210] text-xs font-bold uppercase tracking-wider">
                                   {product.status === 'reserved' ? 'שמור ללקוח' : 'נמכר'}
                                 </span>
                               </div>
                             )}
                           </div>
 
-                          <div className="p-5 space-y-3 text-right">
-                            <div className="flex items-center justify-between text-[11px] text-[#8C8275]">
+                          {/* Info Body */}
+                          <div className="p-6 space-y-3 text-right">
+                            <div className="flex items-center justify-between text-[11px] text-[#8F8171] font-medium">
                               <span>{product.carat} קראט</span>
-                              <span>{product.certificate}</span>
+                              <span className="font-mono">{product.certificate} Certificate</span>
                             </div>
 
-                            <h3 className="font-serif font-bold text-sm text-[#1C1A17] leading-snug line-clamp-2">
+                            <h3 className="font-serif font-bold text-base text-[#141210] leading-snug group-hover:text-[#B39359] transition-colors line-clamp-2">
                               {product.title}
                             </h3>
 
-                            <div className="grid grid-cols-3 gap-1.5 pt-1 text-center text-[10px]">
-                              <div className="bg-[#FAF8F5] border border-[#EDE6DC] rounded-lg py-1">
-                                <span className="text-[#8C8275] block">צבע</span>
-                                <span className="font-bold text-[#1C1A17]">{product.color}</span>
+                            {/* 4Cs Specifications */}
+                            <div className="grid grid-cols-3 gap-2 pt-2 text-center text-[10px]">
+                              <div className="bg-[#FAF8F5] border border-[#EAE3D6] rounded-xl py-1.5">
+                                <span className="text-[#8F8171] block font-light">צבע</span>
+                                <span className="font-bold text-[#141210]">{product.color}</span>
                               </div>
-                              <div className="bg-[#FAF8F5] border border-[#EDE6DC] rounded-lg py-1">
-                                <span className="text-[#8C8275] block">ניקיון</span>
-                                <span className="font-bold text-[#1C1A17]">{product.clarity}</span>
+                              <div className="bg-[#FAF8F5] border border-[#EAE3D6] rounded-xl py-1.5">
+                                <span className="text-[#8F8171] block font-light">ניקיון</span>
+                                <span className="font-bold text-[#141210]">{product.clarity}</span>
                               </div>
-                              <div className="bg-[#FAF8F5] border border-[#EDE6DC] rounded-lg py-1">
-                                <span className="text-[#8C8275] block">חיתוך</span>
-                                <span className="font-bold text-[#1C1A17]">{product.cut}</span>
+                              <div className="bg-[#FAF8F5] border border-[#EAE3D6] rounded-xl py-1.5">
+                                <span className="text-[#8F8171] block font-light">חיתוך</span>
+                                <span className="font-bold text-[#141210]">{product.cut}</span>
                               </div>
                             </div>
                           </div>
                         </div>
 
-                        <div className="p-5 pt-0 flex items-center justify-between border-t border-[#FAF8F5] mt-2">
+                        {/* Price & Action */}
+                        <div className="p-6 pt-0 flex items-center justify-between border-t border-[#FAF8F5] mt-3">
                           <div className="text-right">
-                            <span className="text-[10px] text-[#8C8275] block">מחיר ישיר</span>
-                            <span className="text-base font-bold text-[#1C1A17]">
+                            <span className="text-[10px] text-[#8F8171] block font-light">מחיר בורסה ישיר</span>
+                            <span className="text-lg font-serif font-bold text-[#141210]">
                               ₪{product.price.toLocaleString()}
                             </span>
                           </div>
 
-                          <a
-                            href={`https://wa.me/972544847078?text=${encodeURIComponent(`שלום אריק, אני מתעניין בפריט ${product.title}`)}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="px-4 py-2 bg-[#1C1A17] text-white rounded-xl text-xs font-semibold hover:bg-[#332F2A] transition-colors flex items-center gap-1.5"
-                          >
-                            <span>לפרטים</span>
-                            <ArrowRight className="w-3.5 h-3.5 text-[#C5A880] rotate-180" />
-                          </a>
+                          <div className="px-4 py-2 rounded-full bg-[#FAF8F5] border border-[#EAE3D6] text-[#B39359] group-hover:bg-[#141210] group-hover:border-[#141210] group-hover:text-white transition-all text-xs font-semibold flex items-center gap-1">
+                            <span>פרטים ומדידה</span>
+                            <ArrowRight className="w-3.5 h-3.5 rotate-180" />
+                          </div>
                         </div>
                       </div>
                     );
@@ -1064,77 +1087,186 @@ export default function App() {
         </main>
       )}
 
-      {/* ABOUT VIEW */}
+      {/* 4. PRODUCT DETAIL MODAL (SHOWROOM EXPERIENCE LIKE ROCKS & GOLD) */}
+      {selectedProductView && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white border border-[#EAE3D6] rounded-3xl max-w-4xl w-full p-6 sm:p-10 relative shadow-2xl max-h-[92vh] overflow-y-auto text-right">
+            
+            <button 
+              onClick={() => setSelectedProductView(null)}
+              className="absolute top-6 left-6 p-2 rounded-full bg-[#FAF8F5] border border-[#EAE3D6] text-[#8F8171] hover:text-[#141210] hover:bg-[#F5F0E6] transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+              
+              {/* Product Visual */}
+              <div className="aspect-square rounded-2xl overflow-hidden border border-[#EAE3D6] bg-[#FAF8F5] relative">
+                <img 
+                  src={selectedProductView.image} 
+                  alt={selectedProductView.title}
+                  className="w-full h-full object-cover" 
+                />
+                <div className="absolute top-4 right-4 flex items-center gap-2">
+                  <span className="px-3 py-1 rounded-full bg-white/95 text-xs font-bold text-[#141210] shadow-sm">
+                    חיתוך {SHAPES_DATA.find(s => s.value === selectedProductView.shape)?.labelHe || selectedProductView.shape}
+                  </span>
+                  {selectedProductView.diamond_type && (
+                    <span className="px-3 py-1 rounded-full bg-[#B39359] text-xs font-bold text-white">
+                      {selectedProductView.diamond_type === 'Natural' ? 'יהלום טבעי' : 'יהלום מעבדה'}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Product Info & Direct Booking */}
+              <div className="space-y-6">
+                <div>
+                  <span className="text-xs font-mono text-[#B39359] uppercase tracking-widest">ARIK YAKOBOV SHOWROOM</span>
+                  <h2 className="font-serif font-bold text-2xl sm:text-3xl text-[#141210] mt-1 leading-snug">
+                    {selectedProductView.title}
+                  </h2>
+                  <div className="text-2xl font-serif font-bold text-[#141210] mt-3">
+                    ₪{selectedProductView.price.toLocaleString()}
+                  </div>
+                </div>
+
+                {/* 4Cs Table */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+                  <div className="bg-[#FAF8F5] p-2.5 rounded-xl border border-[#EAE3D6]">
+                    <span className="text-[10px] text-[#8F8171] block">משקל קראט</span>
+                    <span className="font-bold text-[#141210]">{selectedProductView.carat} ct</span>
+                  </div>
+                  <div className="bg-[#FAF8F5] p-2.5 rounded-xl border border-[#EAE3D6]">
+                    <span className="text-[10px] text-[#8F8171] block">צבע (Color)</span>
+                    <span className="font-bold text-[#141210]">{selectedProductView.color}</span>
+                  </div>
+                  <div className="bg-[#FAF8F5] p-2.5 rounded-xl border border-[#EAE3D6]">
+                    <span className="text-[10px] text-[#8F8171] block">ניקיון (Clarity)</span>
+                    <span className="font-bold text-[#141210]">{selectedProductView.clarity}</span>
+                  </div>
+                  <div className="bg-[#FAF8F5] p-2.5 rounded-xl border border-[#EAE3D6]">
+                    <span className="text-[10px] text-[#8F8171] block">תעודה</span>
+                    <span className="font-bold text-[#141210]">{selectedProductView.certificate}</span>
+                  </div>
+                </div>
+
+                {/* Trust Points */}
+                <div className="space-y-2 text-xs text-[#544B41] pt-2">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-[#B39359]" />
+                    <span>אחריות מקיפה לכל החיים ושירות ניקוי וחידוש חינם</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Award className="w-4 h-4 text-[#B39359]" />
+                    <span>תעודה גמולוגית בינלאומית מקורית (GIA / IGI)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-[#B39359]" />
+                    <span>מפגש מדידה אישי בחדר העסקאות בבורסת היהלומים (בניין שמשון)</span>
+                  </div>
+                </div>
+
+                {/* Direct Action Buttons */}
+                <div className="space-y-3 pt-2">
+                  <a
+                    href={`https://wa.me/972544847078?text=${encodeURIComponent(`שלום אריק, אני מעוניין לתאם פגישה ומדידה בבורסה עבור: ${selectedProductView.title}`)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full py-4 bg-[#141210] text-[#D8C7B0] border border-[#B39359]/40 rounded-full font-semibold text-xs tracking-wider uppercase flex items-center justify-center gap-2 hover:bg-[#201D19] transition-all shadow-md"
+                  >
+                    <Calendar className="w-4 h-4 text-[#B39359]" />
+                    <span>תיאום פגישה ומדידה בבורסה בוואטסאפ</span>
+                  </a>
+
+                  <a
+                    href={`tel:${PHONE_NUMBER}`}
+                    className="w-full py-3 bg-[#FAF8F5] border border-[#EAE3D6] text-[#141210] rounded-full font-semibold text-xs flex items-center justify-center gap-2 hover:bg-[#F5F0E6] transition-colors"
+                  >
+                    <Phone className="w-4 h-4 text-[#B39359]" />
+                    <span>שיחה ישירה עם אריק: {DISPLAY_PHONE}</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ABOUT PAGE */}
       {currentRoute === 'about' && (
-        <main className="flex-1 max-w-4xl mx-auto px-4 py-12 sm:py-16 text-right space-y-8">
+        <main className="flex-1 max-w-4xl mx-auto px-4 py-16 text-right space-y-8">
           <div className="text-center space-y-3">
-            <span className="text-xs font-mono text-[#9E8255] tracking-widest uppercase">אודות המותג</span>
-            <h1 className="text-2xl sm:text-4xl font-serif font-bold text-[#1C1A17]">Arik Yakobov Diamonds</h1>
-            <p className="text-xs sm:text-sm text-[#8C8275]">בורסת היהלומים רמת גן, בניין שמשון</p>
+            <span className="text-xs font-mono text-[#B39359] tracking-widest uppercase">אודות הבוטיק</span>
+            <h1 className="text-3xl sm:text-5xl font-serif font-bold text-[#141210]">Arik Yakobov Diamonds</h1>
+            <p className="text-xs sm:text-sm text-[#8F8171]">בורסת היהלומים רמת גן, בניין שמשון</p>
+            <div className="w-12 h-0.5 bg-[#B39359] mx-auto mt-2" />
           </div>
 
-          <div className="bg-white p-6 sm:p-12 rounded-3xl border border-[#EDE6DC] shadow-xs space-y-6 text-sm text-[#575047] leading-relaxed">
-            <p className="font-semibold text-base text-[#1C1A17]">
+          <div className="bg-white p-8 sm:p-12 rounded-3xl border border-[#EAE3D6] shadow-xs space-y-6 text-sm text-[#544B41] leading-relaxed">
+            <p className="font-serif font-bold text-lg text-[#141210]">
               ברוכים הבאים לעולם היהלומים ותכשיטי היוקרה של אריק יעקובוב.
             </p>
             <p>
-              אנו מתמחים בייצור תכשיטים בעיצוב אישי וברכישת יהלומים טבעיים ויהלומי מעבדה (Lab & Natural Diamonds) ישירות מחברי בורסת היהלומים ברמת גן, ללא פערי תיווך וללא עמלות מיותרות.
+              אנו מתמחים בייצור תכשיטי עילית בעיצוב אישי וברכישת יהלומים טבעיים ויהלומי מעבדה (Lab & Natural Diamonds) ישירות מחברי בורסת היהלומים ברמת גן, ללא פערי תיווך וללא עמלות מיותרות.
             </p>
             <p>
-              חדר העסקאות שלנו ממוקם בבניין שמשון בבורסת היהלומים ברמת גן, ומציע חוויית קנייה וליווי אישי מקצועי לכל אורך הדרך – מבחירת האבן בדירוג הבינלאומי (GIA, IGI) ועד לעיצוב והרכבת התכשיט המושלם.
+              חדר העסקאות הפרטי שלנו ממוקם בבניין שמשון בבורסת היהלומים ברמת גן, ומציע חוויית קנייה בוטיקית וליווי אישי מקצועי לכל אורך הדרך – מבחירת האבן הגולמית בדירוג הבינלאומי המחמיר (GIA, IGI) ועד לעיצוב והרכבת טבעת האירוסין או תכשיט החלומות שלך.
             </p>
-            <div className="pt-4 border-t border-[#EDE6DC] flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="pt-6 border-t border-[#EAE3D6] flex flex-col sm:flex-row items-center justify-between gap-4">
               <div>
-                <span className="font-bold text-[#1C1A17] block">פגישות אישיות ותיאום מראש:</span>
-                <span className="text-xs text-[#8C8275]">טלפון / וואטסאפ: {DISPLAY_PHONE}</span>
+                <span className="font-bold text-[#141210] block">פגישות אישיות ותיאום מראש:</span>
+                <span className="text-xs text-[#8F8171]">טלפון / וואטסאפ: {DISPLAY_PHONE}</span>
               </div>
               <a
                 href={WHATSAPP_LINK}
                 target="_blank"
                 rel="noreferrer"
-                className="w-full sm:w-auto text-center px-6 py-3 bg-[#1C1A17] text-white rounded-xl text-xs font-semibold hover:bg-[#332F2A]"
+                className="w-full sm:w-auto px-8 py-3.5 bg-[#141210] text-[#D8C7B0] border border-[#B39359]/40 rounded-full text-xs font-semibold hover:bg-[#201D19]"
               >
-                תיאום פגישה אישית
+                תיאום פגישה אישית בבורסה
               </a>
             </div>
           </div>
         </main>
       )}
 
-      {/* CONTACT US VIEW */}
+      {/* CONTACT US PAGE */}
       {currentRoute === 'contactus' && (
-        <main className="flex-1 max-w-4xl mx-auto px-4 py-12 sm:py-16 space-y-8 text-right">
+        <main className="flex-1 max-w-4xl mx-auto px-4 py-16 space-y-8 text-right">
           <div className="text-center space-y-3">
-            <span className="text-xs font-mono text-[#9E8255] tracking-widest uppercase">יצירת קשר ופגישות</span>
-            <h1 className="text-2xl sm:text-4xl font-serif font-bold text-[#1C1A17]">בואו ניפגש בבורסת היהלומים</h1>
-            <p className="text-xs sm:text-sm text-[#8C8275]">בניין שמשון, בורסת היהלומים רמת גן</p>
+            <span className="text-xs font-mono text-[#B39359] tracking-widest uppercase">פגישות וייעוץ אישי</span>
+            <h1 className="text-3xl sm:text-5xl font-serif font-bold text-[#141210]">חדר העסקאות בבורסת היהלומים</h1>
+            <p className="text-xs sm:text-sm text-[#8F8171]">בניין שמשון, בורסת היהלומים רמת גן</p>
+            <div className="w-12 h-0.5 bg-[#B39359] mx-auto mt-2" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EDE6DC] shadow-xs space-y-6">
-              <h3 className="font-serif font-bold text-lg text-[#1C1A17]">פרטי הגעה והתקשרות</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="bg-white p-8 rounded-3xl border border-[#EAE3D6] shadow-xs space-y-6">
+              <h3 className="font-serif font-bold text-xl text-[#141210]">פרטי הגעה והתקשרות</h3>
               
-              <div className="space-y-4 text-xs text-[#575047]">
+              <div className="space-y-4 text-xs text-[#544B41]">
                 <div className="flex items-start gap-3">
-                  <MapPin className="w-5 h-5 text-[#9E8255] shrink-0" />
+                  <MapPin className="w-5 h-5 text-[#B39359] shrink-0" />
                   <div>
-                    <span className="font-bold text-[#1C1A17] block">כתובת:</span>
+                    <span className="font-bold text-[#141210] block">כתובת:</span>
                     <span>בורסת היהלומים רמת גן, בניין שמשון</span>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <Phone className="w-5 h-5 text-[#9E8255] shrink-0" />
+                  <Phone className="w-5 h-5 text-[#B39359] shrink-0" />
                   <div>
-                    <span className="font-bold text-[#1C1A17] block">טלפון ישיר:</span>
-                    <a href={`tel:${PHONE_NUMBER}`} className="hover:underline">{DISPLAY_PHONE}</a>
+                    <span className="font-bold text-[#141210] block">טלפון ישיר:</span>
+                    <a href={`tel:${PHONE_NUMBER}`} className="hover:underline font-semibold">{DISPLAY_PHONE}</a>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <Clock className="w-5 h-5 text-[#9E8255] shrink-0" />
+                  <Clock className="w-5 h-5 text-[#B39359] shrink-0" />
                   <div>
-                    <span className="font-bold text-[#1C1A17] block">שעות פעילות:</span>
+                    <span className="font-bold text-[#141210] block">שעות פעילות:</span>
                     <span>ימים א׳ - ה׳ בתיאום מראש בלבד</span>
                   </div>
                 </div>
@@ -1144,34 +1276,34 @@ export default function App() {
                 href={WHATSAPP_LINK}
                 target="_blank"
                 rel="noreferrer"
-                className="w-full py-3.5 bg-[#1C1A17] text-white rounded-xl font-semibold text-xs flex items-center justify-center gap-2 hover:bg-[#332F2A]"
+                className="w-full py-4 bg-[#141210] text-[#D8C7B0] border border-[#B39359]/40 rounded-full font-semibold text-xs flex items-center justify-center gap-2 hover:bg-[#201D19]"
               >
-                <Phone className="w-4 h-4 text-[#C5A880]" />
-                <span>פתיחת שיחה בוואטסאפ</span>
+                <Phone className="w-4 h-4 text-[#B39359]" />
+                <span>פתיחת שיחה ישירה בוואטסאפ</span>
               </a>
             </div>
 
-            <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EDE6DC] shadow-xs space-y-4">
-              <h3 className="font-serif font-bold text-lg text-[#1C1A17]">השארת פנייה מהירה</h3>
+            <div className="bg-white p-8 rounded-3xl border border-[#EAE3D6] shadow-xs space-y-4">
+              <h3 className="font-serif font-bold text-xl text-[#141210]">השארת פנייה מהירה</h3>
               <form onSubmit={(e) => {
                 e.preventDefault();
                 alert('פנייתך התקבלה בהצלחה, ניצור קשר בהקדם!');
               }} className="space-y-3 text-xs">
                 <div>
-                  <label className="block mb-1 font-semibold text-[#575047]">שם מלא</label>
-                  <input required type="text" placeholder="ישראל ישראלי" className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2]" />
+                  <label className="block mb-1 font-semibold text-[#544B41]">שם מלא</label>
+                  <input required type="text" placeholder="ישראל ישראלי" className="w-full px-4 py-3 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]" />
                 </div>
                 <div>
-                  <label className="block mb-1 font-semibold text-[#575047]">מספר טלפון</label>
-                  <input required type="tel" dir="ltr" placeholder="050-0000000" className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2]" />
+                  <label className="block mb-1 font-semibold text-[#544B41]">מספר טלפון</label>
+                  <input required type="tel" dir="ltr" placeholder="050-0000000" className="w-full px-4 py-3 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]" />
                 </div>
                 <div>
-                  <label className="block mb-1 font-semibold text-[#575047]">תוכן ההודעה</label>
-                  <textarea rows={3} placeholder="אשמח לפרטים על טבעת אירוסין..." className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2]" />
+                  <label className="block mb-1 font-semibold text-[#544B41]">תוכן הפנייה</label>
+                  <textarea rows={3} placeholder="מעוניין בפרטים על טבעת אירוסין..." className="w-full px-4 py-3 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]" />
                 </div>
-                <button type="submit" className="w-full py-3 bg-[#9E8255] text-white font-bold rounded-xl text-xs hover:bg-[#887046] flex items-center justify-center gap-2">
+                <button type="submit" className="w-full py-3.5 bg-[#B39359] text-white font-bold rounded-full text-xs hover:bg-[#a18349] flex items-center justify-center gap-2 transition-colors">
                   <Send className="w-3.5 h-3.5" />
-                  <span>שליחת הודעה</span>
+                  <span>שליחת פנייה</span>
                 </button>
               </form>
             </div>
@@ -1179,12 +1311,12 @@ export default function App() {
         </main>
       )}
 
-      {/* ADMIN PANEL VIEW */}
+      {/* ADMIN PANEL */}
       {currentRoute === 'admin' && (
-        <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full text-right">
+        <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-8 py-10 w-full text-right">
           {!isAdminAuthenticated ? (
-            <div className="max-w-md mx-auto my-12 p-6 sm:p-8 rounded-3xl bg-[#11100E] border border-[#2B2722] text-white shadow-2xl text-center space-y-6">
-              <div className="w-14 h-14 mx-auto rounded-full bg-[#1C1A17] border border-[#3E3832] flex items-center justify-center text-[#C5A880]">
+            <div className="max-w-md mx-auto my-12 p-8 rounded-3xl bg-[#141210] border border-[#282420] text-white shadow-2xl text-center space-y-6">
+              <div className="w-14 h-14 mx-auto rounded-full bg-[#201D19] border border-[#B39359]/30 flex items-center justify-center text-[#B39359]">
                 <Diamond className="w-6 h-6" />
               </div>
 
@@ -1192,12 +1324,12 @@ export default function App() {
                 <>
                   <div>
                     <h2 className="text-xl font-serif font-bold text-[#FAF8F5]">כניסת מנהל מערכת</h2>
-                    <p className="text-xs text-[#8C8275] mt-1">אימות מאובטח בחיבור Supabase</p>
+                    <p className="text-xs text-[#8F8171] mt-1">אימות מאובטח מול Supabase</p>
                   </div>
 
                   <form onSubmit={handleLogin} className="space-y-4 text-right">
                     <div>
-                      <label className="block text-xs font-semibold text-[#D5C7B2] mb-1">אימייל מנהל</label>
+                      <label className="block text-xs font-semibold text-[#D8C7B0] mb-1">אימייל מנהל</label>
                       <input
                         type="email"
                         required
@@ -1205,12 +1337,12 @@ export default function App() {
                         onChange={(e) => setEmailInput(e.target.value)}
                         placeholder="admin@arikdiamonds.com"
                         dir="ltr"
-                        className="w-full px-4 py-2.5 rounded-xl bg-[#1C1A17] border border-[#3E3832] text-sm text-white focus:outline-none focus:border-[#C5A880]"
+                        className="w-full px-4 py-2.5 rounded-xl bg-[#201D19] border border-[#3A342D] text-sm text-white focus:outline-none focus:border-[#B39359]"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-[#D5C7B2] mb-1">סיסמה</label>
+                      <label className="block text-xs font-semibold text-[#D8C7B0] mb-1">סיסמה</label>
                       <input
                         type="password"
                         required
@@ -1218,7 +1350,7 @@ export default function App() {
                         onChange={(e) => setPasswordInput(e.target.value)}
                         placeholder="••••••••"
                         dir="ltr"
-                        className="w-full px-4 py-2.5 rounded-xl bg-[#1C1A17] border border-[#3E3832] text-sm text-white focus:outline-none focus:border-[#C5A880]"
+                        className="w-full px-4 py-2.5 rounded-xl bg-[#201D19] border border-[#3A342D] text-sm text-white focus:outline-none focus:border-[#B39359]"
                       />
                     </div>
 
@@ -1227,7 +1359,7 @@ export default function App() {
                     <button
                       type="submit"
                       disabled={isLoadingAuth}
-                      className="w-full py-3 rounded-xl bg-[#C5A880] text-[#11100E] font-bold text-xs tracking-wider uppercase hover:bg-[#b0936b] transition-colors disabled:opacity-50 cursor-pointer"
+                      className="w-full py-3.5 rounded-xl bg-[#B39359] text-[#141210] font-bold text-xs tracking-wider uppercase hover:bg-[#a18349] transition-colors disabled:opacity-50 cursor-pointer"
                     >
                       {isLoadingAuth ? 'בודק...' : 'המשך לאימות'}
                     </button>
@@ -1239,13 +1371,13 @@ export default function App() {
                 <>
                   <div>
                     <h2 className="text-xl font-serif font-bold text-white">הגדרת אימות דו-שלבי (2FA)</h2>
-                    <p className="text-xs text-[#8C8275] mt-1 leading-relaxed">
-                      סרוק את ה-QR באפליקציית Authenticator (Google או Microsoft) והזן את 6 הספרות.
+                    <p className="text-xs text-[#8F8171] mt-1 leading-relaxed">
+                      סרוק את ה-QR באפליקציית Authenticator והזן את 6 הספרות.
                     </p>
                   </div>
 
                   {qrCodeUrl && (
-                    <div className="flex justify-center p-3 bg-white border border-[#EDE6DC] rounded-2xl max-w-[190px] mx-auto">
+                    <div className="flex justify-center p-3 bg-white border border-[#EAE3D6] rounded-2xl max-w-[190px] mx-auto">
                       <img src={qrCodeUrl} alt="2FA QR Code" className="w-full h-auto" />
                     </div>
                   )}
@@ -1259,7 +1391,7 @@ export default function App() {
                       onChange={(e) => setVerifyCode(e.target.value)}
                       placeholder="123456"
                       dir="ltr"
-                      className="w-full px-4 py-2.5 rounded-xl bg-[#1C1A17] border border-[#3E3832] text-center text-xl font-mono tracking-widest text-white focus:outline-none focus:border-[#C5A880]"
+                      className="w-full px-4 py-2.5 rounded-xl bg-[#201D19] border border-[#3A342D] text-center text-xl font-mono tracking-widest text-white focus:outline-none focus:border-[#B39359]"
                     />
 
                     {loginError && <p className="text-xs text-rose-400 font-semibold">{loginError}</p>}
@@ -1267,7 +1399,7 @@ export default function App() {
                     <button
                       type="submit"
                       disabled={isLoadingAuth}
-                      className="w-full py-3 rounded-xl bg-[#C5A880] text-[#11100E] font-bold text-xs tracking-wider uppercase hover:bg-[#b0936b]"
+                      className="w-full py-3.5 rounded-xl bg-[#B39359] text-[#141210] font-bold text-xs tracking-wider uppercase hover:bg-[#a18349]"
                     >
                       {isLoadingAuth ? 'מאמת...' : 'הפעל 2FA והיכנס'}
                     </button>
@@ -1279,7 +1411,7 @@ export default function App() {
                 <>
                   <div>
                     <h2 className="text-xl font-serif font-bold text-white">אימות דו-שלבי (2FA)</h2>
-                    <p className="text-xs text-[#8C8275] mt-1">הזן את 6 הספרות מהאפליקציה</p>
+                    <p className="text-xs text-[#8F8171] mt-1">הזן את 6 הספרות מהאפליקציה</p>
                   </div>
 
                   <form onSubmit={handleVerifyLogin} className="space-y-4">
@@ -1291,7 +1423,7 @@ export default function App() {
                       onChange={(e) => setVerifyCode(e.target.value)}
                       placeholder="123456"
                       dir="ltr"
-                      className="w-full px-4 py-2.5 rounded-xl bg-[#1C1A17] border border-[#3E3832] text-center text-xl font-mono tracking-widest text-white focus:outline-none focus:border-[#C5A880]"
+                      className="w-full px-4 py-2.5 rounded-xl bg-[#201D19] border border-[#3A342D] text-center text-xl font-mono tracking-widest text-white focus:outline-none focus:border-[#B39359]"
                     />
 
                     {loginError && <p className="text-xs text-rose-400 font-semibold">{loginError}</p>}
@@ -1299,7 +1431,7 @@ export default function App() {
                     <button
                       type="submit"
                       disabled={isLoadingAuth}
-                      className="w-full py-3 rounded-xl bg-[#C5A880] text-[#11100E] font-bold text-xs tracking-wider uppercase hover:bg-[#b0936b]"
+                      className="w-full py-3.5 rounded-xl bg-[#B39359] text-[#141210] font-bold text-xs tracking-wider uppercase hover:bg-[#a18349]"
                     >
                       {isLoadingAuth ? 'מאמת...' : 'כניסה למערכת'}
                     </button>
@@ -1310,11 +1442,11 @@ export default function App() {
           ) : (
             <div className="space-y-8">
 
-              {/* EDIT RUNNING MARQUEE TEXT */}
-              <div className="bg-white p-5 sm:p-6 rounded-3xl border border-[#EDE6DC] shadow-xs space-y-4">
-                <div className="flex items-center gap-2 border-b border-[#EDE6DC] pb-3">
-                  <Sparkles className="w-4 h-4 text-[#9E8255]" />
-                  <h3 className="font-serif font-bold text-base text-[#1C1A17]">עריכת הטקסט הרץ בראש האתר (Ticker)</h3>
+              {/* TICKER TEXT EDITOR */}
+              <div className="bg-white p-6 rounded-3xl border border-[#EAE3D6] shadow-xs space-y-4">
+                <div className="flex items-center gap-2 border-b border-[#EAE3D6] pb-3">
+                  <Sparkles className="w-4 h-4 text-[#B39359]" />
+                  <h3 className="font-serif font-bold text-base text-[#141210]">עריכת הטקסט הרץ בראש האתר (Ticker)</h3>
                 </div>
                 <form onSubmit={handleSaveMarquee} className="flex flex-col sm:flex-row gap-3">
                   <input
@@ -1322,80 +1454,80 @@ export default function App() {
                     required
                     value={tempMarqueeInput}
                     onChange={(e) => setTempMarqueeInput(e.target.value)}
-                    className="flex-1 px-4 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2] text-xs"
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6] text-xs"
                   />
                   <button
                     type="submit"
-                    className="px-6 py-2.5 bg-[#1C1A17] text-white rounded-xl text-xs font-semibold hover:bg-[#332F2A] flex items-center justify-center gap-1.5 shrink-0"
+                    className="px-6 py-2.5 bg-[#141210] text-[#D8C7B0] rounded-xl text-xs font-semibold hover:bg-[#201D19] flex items-center justify-center gap-1.5 shrink-0"
                   >
-                    <Save className="w-3.5 h-3.5 text-[#C5A880]" />
+                    <Save className="w-3.5 h-3.5 text-[#B39359]" />
                     <span>עדכן טקסט רץ</span>
                   </button>
                 </form>
               </div>
 
               {/* ACTION BAR */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-[#EDE6DC] shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-[#EAE3D6] shadow-xs">
                 <div>
-                  <h1 className="text-xl sm:text-2xl font-serif font-bold text-[#1C1A17]">ניהול מלאי יהלומים - Arik Diamonds</h1>
-                  <p className="text-xs text-[#8C8275] mt-0.5">סנכרון מלא ואוטומטי מול מסד הנתונים Supabase</p>
+                  <h1 className="text-xl sm:text-2xl font-serif font-bold text-[#141210]">ניהול מלאי יהלומים - Arik Diamonds</h1>
+                  <p className="text-xs text-[#8F8171] mt-0.5">סנכרון מלא מול מסד הנתונים Supabase</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <button
                     onClick={fetchProducts}
-                    className="p-2.5 rounded-xl border border-[#EDE6DC] bg-[#FAF8F5] hover:bg-[#EDE6DC] transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
+                    className="p-2.5 rounded-xl border border-[#EAE3D6] bg-[#FAF8F5] hover:bg-[#EAE3D6] transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
                   >
-                    <RefreshCw className="w-4 h-4 text-[#9E8255]" />
-                    <span>רענן נתונים</span>
+                    <RefreshCw className="w-4 h-4 text-[#B39359]" />
+                    <span>רענן</span>
                   </button>
                   <button
                     onClick={handleLogout}
-                    className="p-2.5 px-4 rounded-xl bg-[#1C1A17] text-white hover:bg-[#332F2A] transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
+                    className="p-2.5 px-4 rounded-xl bg-[#141210] text-[#D8C7B0] hover:bg-[#201D19] transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
                   >
-                    <LogOut className="w-4 h-4 text-[#C5A880]" />
+                    <LogOut className="w-4 h-4 text-[#B39359]" />
                     <span>התנתק</span>
                   </button>
                 </div>
               </div>
 
-              {/* ADD FORM */}
-              <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EDE6DC] shadow-xs space-y-6">
-                <div className="flex items-center gap-2 border-b border-[#EDE6DC] pb-4">
-                  <Plus className="w-5 h-5 text-[#9E8255]" />
-                  <h2 className="font-serif font-bold text-lg text-[#1C1A17]">הוספת פריט חדש למאגר</h2>
+              {/* ADD PRODUCT FORM */}
+              <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EAE3D6] shadow-xs space-y-6">
+                <div className="flex items-center gap-2 border-b border-[#EAE3D6] pb-4">
+                  <Plus className="w-5 h-5 text-[#B39359]" />
+                  <h2 className="font-serif font-bold text-lg text-[#141210]">הוספת פריט חדש לקולקציה</h2>
                 </div>
 
                 <form onSubmit={handleAddProduct} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
                   <div className="sm:col-span-2">
-                    <label className="block mb-1 font-semibold text-[#575047]">כותרת ושם הפריט *</label>
+                    <label className="block mb-1 font-semibold text-[#544B41]">כותרת ושם הפריט *</label>
                     <input
                       type="text"
                       required
                       placeholder="טבעת סוליטר בשיבוץ יהלום מרקיזה 1.80 קראט"
                       value={newProduct.title}
                       onChange={e => setNewProduct({ ...newProduct, title: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2]"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
                     />
                   </div>
 
                   <div>
-                    <label className="block mb-1 font-semibold text-[#575047]">מחיר (₪) *</label>
+                    <label className="block mb-1 font-semibold text-[#544B41]">מחיר (₪) *</label>
                     <input
                       type="number"
                       required
                       placeholder="35000"
                       value={newProduct.price}
                       onChange={e => setNewProduct({ ...newProduct, price: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2]"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
                     />
                   </div>
 
                   <div>
-                    <label className="block mb-1 font-semibold text-[#575047]">קטגוריה</label>
+                    <label className="block mb-1 font-semibold text-[#544B41]">קטגוריה</label>
                     <select
                       value={newProduct.category}
                       onChange={e => setNewProduct({ ...newProduct, category: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2]"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
                     >
                       <option value="engagement">טבעות אירוסין</option>
                       <option value="loose">יהלומים משוחררים</option>
@@ -1406,11 +1538,11 @@ export default function App() {
                   </div>
 
                   <div>
-                    <label className="block mb-1 font-semibold text-[#575047]">סוג יהלום</label>
+                    <label className="block mb-1 font-semibold text-[#544B41]">סוג יהלום</label>
                     <select
                       value={newProduct.diamond_type}
                       onChange={e => setNewProduct({ ...newProduct, diamond_type: e.target.value as any })}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2]"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
                     >
                       <option value="Natural">טבעי (Natural)</option>
                       <option value="Lab">מעבדה (Lab)</option>
@@ -1418,11 +1550,11 @@ export default function App() {
                   </div>
 
                   <div>
-                    <label className="block mb-1 font-semibold text-[#575047]">צורת חיתוך (בעברית)</label>
+                    <label className="block mb-1 font-semibold text-[#544B41]">צורת חיתוך (בעברית)</label>
                     <select
                       value={newProduct.shape}
                       onChange={e => setNewProduct({ ...newProduct, shape: e.target.value as DiamondShape })}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2]"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
                     >
                       {SHAPES_DATA.map(s => (
                         <option key={s.value} value={s.value}>
@@ -1433,75 +1565,75 @@ export default function App() {
                   </div>
 
                   <div>
-                    <label className="block mb-1 font-semibold text-[#575047]">משקל קראט</label>
+                    <label className="block mb-1 font-semibold text-[#544B41]">משקל קראט</label>
                     <input
                       type="number"
                       step="0.01"
                       placeholder="1.50"
                       value={newProduct.carat}
                       onChange={e => setNewProduct({ ...newProduct, carat: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2]"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
                     />
                   </div>
 
                   <div>
-                    <label className="block mb-1 font-semibold text-[#575047]">צבע (Color)</label>
+                    <label className="block mb-1 font-semibold text-[#544B41]">צבע (Color)</label>
                     <input
                       type="text"
                       placeholder="D / E / F"
                       value={newProduct.color}
                       onChange={e => setNewProduct({ ...newProduct, color: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2]"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
                     />
                   </div>
 
                   <div>
-                    <label className="block mb-1 font-semibold text-[#575047]">ניקיון (Clarity)</label>
+                    <label className="block mb-1 font-semibold text-[#544B41]">ניקיון (Clarity)</label>
                     <input
                       type="text"
                       placeholder="VVS1 / VS1"
                       value={newProduct.clarity}
                       onChange={e => setNewProduct({ ...newProduct, clarity: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2]"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
                     />
                   </div>
 
                   <div>
-                    <label className="block mb-1 font-semibold text-[#575047]">רמת חיתוך (Cut)</label>
+                    <label className="block mb-1 font-semibold text-[#544B41]">רמת חיתוך (Cut)</label>
                     <input
                       type="text"
                       placeholder="Excellent"
                       value={newProduct.cut}
                       onChange={e => setNewProduct({ ...newProduct, cut: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2]"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
                     />
                   </div>
 
                   <div>
-                    <label className="block mb-1 font-semibold text-[#575047]">תעודה גמולוגית</label>
+                    <label className="block mb-1 font-semibold text-[#544B41]">תעודה גמולוגית</label>
                     <input
                       type="text"
                       placeholder="GIA / IGI"
                       value={newProduct.certificate}
                       onChange={e => setNewProduct({ ...newProduct, certificate: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2]"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
                     />
                   </div>
 
                   <div>
-                    <label className="block mb-1 font-semibold text-[#575047]">סטטוס פריט</label>
+                    <label className="block mb-1 font-semibold text-[#544B41]">סטטוס פריט</label>
                     <select
                       value={newProduct.status}
                       onChange={e => setNewProduct({ ...newProduct, status: e.target.value as any })}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2]"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
                     >
-                      <option value="available">זמין במלאי</option>
+                      <option value="available">זמין בגלריה</option>
                       <option value="reserved">שמור ללקוח</option>
                       <option value="sold">נמכר</option>
                     </select>
                   </div>
 
-                  <div className="sm:col-span-2 lg:col-span-3 p-4 rounded-2xl bg-[#FAF8F5] border border-dashed border-[#D5C7B2] flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="sm:col-span-2 lg:col-span-3 p-4 rounded-2xl bg-[#FAF8F5] border border-dashed border-[#EAE3D6] flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                       <input
                         type="file"
@@ -1517,17 +1649,17 @@ export default function App() {
                       />
                       <label
                         htmlFor="new-product-image-upload"
-                        className="px-4 py-2 bg-[#1C1A17] text-white rounded-xl text-xs font-semibold cursor-pointer hover:bg-[#332F2A]"
+                        className="px-4 py-2 bg-[#141210] text-[#D8C7B0] rounded-xl text-xs font-semibold cursor-pointer hover:bg-[#201D19]"
                       >
                         בחר קובץ תמונה מהמכשיר
                       </label>
-                      <span className="text-[11px] text-[#8C8275]">JPG, PNG, WEBP</span>
+                      <span className="text-[11px] text-[#8F8171]">JPG, PNG, WEBP באיכות גבוהה</span>
                     </div>
 
                     {uploadedImagePreview && (
                       <div className="flex items-center gap-2">
-                        <img src={uploadedImagePreview} alt="Preview" className="w-12 h-12 rounded-lg object-cover border border-[#D5C7B2]" />
-                        <span className="text-[11px] text-[#9E8255] font-semibold">תמונה מוכנה להעלאה</span>
+                        <img src={uploadedImagePreview} alt="Preview" className="w-12 h-12 rounded-lg object-cover border border-[#EAE3D6]" />
+                        <span className="text-[11px] text-[#B39359] font-semibold">תמונה נבחרה בהצלחה</span>
                       </div>
                     )}
                   </div>
@@ -1535,7 +1667,7 @@ export default function App() {
                   <div className="sm:col-span-2 lg:col-span-3 flex justify-end">
                     <button
                       type="submit"
-                      className="w-full sm:w-auto px-8 py-3 bg-[#1C1A17] text-white rounded-xl font-semibold text-xs tracking-wider uppercase hover:bg-[#332F2A] shadow-xs cursor-pointer"
+                      className="w-full sm:w-auto px-8 py-3 bg-[#141210] text-[#D8C7B0] rounded-xl font-semibold text-xs tracking-wider uppercase hover:bg-[#201D19] shadow-xs cursor-pointer"
                     >
                       שמור פריט ב-Supabase
                     </button>
@@ -1544,16 +1676,16 @@ export default function App() {
               </div>
 
               {/* TABLE */}
-              <div className="bg-white rounded-3xl border border-[#EDE6DC] shadow-xs overflow-hidden">
-                <div className="p-6 border-b border-[#EDE6DC] flex justify-between items-center">
-                  <h3 className="font-serif font-bold text-base text-[#1C1A17]">
-                    רשימת פריטים פעילים ({products.length})
+              <div className="bg-white rounded-3xl border border-[#EAE3D6] shadow-xs overflow-hidden">
+                <div className="p-6 border-b border-[#EAE3D6] flex justify-between items-center">
+                  <h3 className="font-serif font-bold text-base text-[#141210]">
+                    פריטים פעילים בקולקציה ({products.length})
                   </h3>
                 </div>
 
                 <div className="overflow-x-auto">
                   <table className="w-full text-right text-xs">
-                    <thead className="bg-[#FAF8F5] text-[#8C8275] border-b border-[#EDE6DC]">
+                    <thead className="bg-[#FAF8F5] text-[#8F8171] border-b border-[#EAE3D6]">
                       <tr>
                         <th className="py-3.5 px-4 font-semibold">תמונה</th>
                         <th className="py-3.5 px-4 font-semibold">כותרת</th>
@@ -1566,13 +1698,13 @@ export default function App() {
                         <th className="py-3.5 px-4 font-semibold text-center">פעולות</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#EDE6DC]">
+                    <tbody className="divide-y divide-[#EAE3D6]">
                       {products.map(p => {
                         const shapeObj = SHAPES_DATA.find(s => s.value === p.shape);
                         return (
                           <tr key={p.id} className="hover:bg-[#FAF8F5]/80 transition-colors">
                             <td className="py-3 px-4">
-                              <img src={p.image} alt={p.title} className="w-12 h-12 object-cover rounded-lg border border-[#EDE6DC]" />
+                              <img src={p.image} alt={p.title} className="w-12 h-12 object-cover rounded-lg border border-[#EAE3D6]" />
                             </td>
                             <td className="py-3 px-4 font-medium max-w-xs truncate">{p.title}</td>
                             <td className="py-3 px-4">
@@ -1580,12 +1712,12 @@ export default function App() {
                                 {p.diamond_type === 'Lab' ? 'מעבדה' : 'טבעי'}
                               </span>
                             </td>
-                            <td className="py-3 px-4 font-medium text-[#9E8255]">
+                            <td className="py-3 px-4 font-medium text-[#B39359]">
                               {shapeObj ? shapeObj.labelHe : p.shape}
                             </td>
                             <td className="py-3 px-4">{p.carat} ct</td>
                             <td className="py-3 px-4">{p.color} / {p.clarity}</td>
-                            <td className="py-3 px-4 font-bold text-[#1C1A17]">₪{p.price.toLocaleString()}</td>
+                            <td className="py-3 px-4 font-bold text-[#141210]">₪{p.price.toLocaleString()}</td>
                             <td className="py-3 px-4">
                               <select
                                 value={p.status}
@@ -1610,7 +1742,7 @@ export default function App() {
                                     setEditingProduct(p);
                                     setUploadedImagePreview(p.image);
                                   }}
-                                  className="p-1.5 text-[#9E8255] hover:bg-[#F4EFE6] rounded-lg transition-colors cursor-pointer"
+                                  className="p-1.5 text-[#B39359] hover:bg-[#F5F0E6] rounded-lg transition-colors cursor-pointer"
                                   title="ערוך פריט"
                                 >
                                   <Edit3 className="w-4 h-4" />
@@ -1637,46 +1769,46 @@ export default function App() {
           {/* EDIT MODAL */}
           {editingProduct && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-              <div className="bg-white border border-[#EDE6DC] rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 relative shadow-2xl max-h-[90vh] overflow-y-auto">
-                <div className="flex items-center justify-between border-b border-[#EDE6DC] pb-4">
+              <div className="bg-white border border-[#EAE3D6] rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 relative shadow-2xl max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between border-b border-[#EAE3D6] pb-4">
                   <div className="flex items-center gap-2">
-                    <Edit3 className="w-5 h-5 text-[#9E8255]" />
-                    <h3 className="font-serif font-bold text-lg text-[#1C1A17]">עריכת פריט</h3>
+                    <Edit3 className="w-5 h-5 text-[#B39359]" />
+                    <h3 className="font-serif font-bold text-lg text-[#141210]">עריכת פריט</h3>
                   </div>
                   <button onClick={() => setEditingProduct(null)} className="p-1.5 rounded-full hover:bg-[#FAF8F5]">
-                    <X className="w-5 h-5 text-[#8C8275]" />
+                    <X className="w-5 h-5 text-[#8F8171]" />
                   </button>
                 </div>
 
                 <form onSubmit={handleUpdateProduct} className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                   <div className="sm:col-span-2">
-                    <label className="block mb-1 font-semibold text-[#575047]">כותרת ושם הפריט</label>
+                    <label className="block mb-1 font-semibold text-[#544B41]">כותרת ושם הפריט</label>
                     <input
                       type="text"
                       required
                       value={editingProduct.title}
                       onChange={e => setEditingProduct({ ...editingProduct, title: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2]"
+                      className="w-full px-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
                     />
                   </div>
 
                   <div>
-                    <label className="block mb-1 font-semibold text-[#575047]">מחיר (₪)</label>
+                    <label className="block mb-1 font-semibold text-[#544B41]">מחיר (₪)</label>
                     <input
                       type="number"
                       required
                       value={editingProduct.price}
                       onChange={e => setEditingProduct({ ...editingProduct, price: Number(e.target.value) })}
-                      className="w-full px-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2]"
+                      className="w-full px-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
                     />
                   </div>
 
                   <div>
-                    <label className="block mb-1 font-semibold text-[#575047]">קטגוריה</label>
+                    <label className="block mb-1 font-semibold text-[#544B41]">קטגוריה</label>
                     <select
                       value={editingProduct.category}
                       onChange={e => setEditingProduct({ ...editingProduct, category: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2]"
+                      className="w-full px-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
                     >
                       <option value="engagement">טבעות אירוסין</option>
                       <option value="loose">יהלומים משוחררים</option>
@@ -1687,11 +1819,11 @@ export default function App() {
                   </div>
 
                   <div>
-                    <label className="block mb-1 font-semibold text-[#575047]">סוג יהלום</label>
+                    <label className="block mb-1 font-semibold text-[#544B41]">סוג יהלום</label>
                     <select
                       value={editingProduct.diamond_type || 'Natural'}
                       onChange={e => setEditingProduct({ ...editingProduct, diamond_type: e.target.value as any })}
-                      className="w-full px-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2]"
+                      className="w-full px-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
                     >
                       <option value="Natural">טבעי (Natural)</option>
                       <option value="Lab">מעבדה (Lab)</option>
@@ -1699,11 +1831,11 @@ export default function App() {
                   </div>
 
                   <div>
-                    <label className="block mb-1 font-semibold text-[#575047]">צורת חיתוך</label>
+                    <label className="block mb-1 font-semibold text-[#544B41]">צורת חיתוך</label>
                     <select
                       value={editingProduct.shape}
                       onChange={e => setEditingProduct({ ...editingProduct, shape: e.target.value as DiamondShape })}
-                      className="w-full px-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2]"
+                      className="w-full px-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
                     >
                       {SHAPES_DATA.map(s => (
                         <option key={s.value} value={s.value}>
@@ -1714,53 +1846,53 @@ export default function App() {
                   </div>
 
                   <div>
-                    <label className="block mb-1 font-semibold text-[#575047]">משקל קראט</label>
+                    <label className="block mb-1 font-semibold text-[#544B41]">משקל קראט</label>
                     <input
                       type="number"
                       step="0.01"
                       value={editingProduct.carat}
                       onChange={e => setEditingProduct({ ...editingProduct, carat: Number(e.target.value) })}
-                      className="w-full px-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2]"
+                      className="w-full px-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
                     />
                   </div>
 
                   <div>
-                    <label className="block mb-1 font-semibold text-[#575047]">צבע</label>
+                    <label className="block mb-1 font-semibold text-[#544B41]">צבע</label>
                     <input
                       type="text"
                       value={editingProduct.color}
                       onChange={e => setEditingProduct({ ...editingProduct, color: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2]"
+                      className="w-full px-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
                     />
                   </div>
 
                   <div>
-                    <label className="block mb-1 font-semibold text-[#575047]">ניקיון</label>
+                    <label className="block mb-1 font-semibold text-[#544B41]">ניקיון</label>
                     <input
                       type="text"
                       value={editingProduct.clarity}
                       onChange={e => setEditingProduct({ ...editingProduct, clarity: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2]"
+                      className="w-full px-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
                     />
                   </div>
 
                   <div>
-                    <label className="block mb-1 font-semibold text-[#575047]">סטטוס</label>
+                    <label className="block mb-1 font-semibold text-[#544B41]">סטטוס</label>
                     <select
                       value={editingProduct.status}
                       onChange={e => setEditingProduct({ ...editingProduct, status: e.target.value as any })}
-                      className="w-full px-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#D5C7B2]"
+                      className="w-full px-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
                     >
-                      <option value="available">זמין במלאי</option>
+                      <option value="available">זמין בגלריה</option>
                       <option value="reserved">שמור ללקוח</option>
                       <option value="sold">נמכר</option>
                     </select>
                   </div>
 
-                  <div className="sm:col-span-2 p-3 bg-[#FAF8F5] border border-[#EDE6DC] rounded-2xl flex items-center justify-between gap-4">
+                  <div className="sm:col-span-2 p-3 bg-[#FAF8F5] border border-[#EAE3D6] rounded-2xl flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
-                      <img src={uploadedImagePreview || editingProduct.image} alt="Preview" className="w-14 h-14 object-cover rounded-xl border border-[#D5C7B2]" />
-                      <span className="text-[11px] text-[#575047]">תמונה נוכחית</span>
+                      <img src={uploadedImagePreview || editingProduct.image} alt="Preview" className="w-14 h-14 object-cover rounded-xl border border-[#EAE3D6]" />
+                      <span className="text-[11px] text-[#544B41]">תמונה נוכחית</span>
                     </div>
 
                     <div>
@@ -1776,23 +1908,23 @@ export default function App() {
                         className="hidden"
                         id="edit-modal-image-upload"
                       />
-                      <label htmlFor="edit-modal-image-upload" className="px-3.5 py-2 bg-[#1C1A17] text-white rounded-xl cursor-pointer text-[11px] font-semibold">
+                      <label htmlFor="edit-modal-image-upload" className="px-3.5 py-2 bg-[#141210] text-[#D8C7B0] rounded-xl cursor-pointer text-[11px] font-semibold">
                         החלף תמונה
                       </label>
                     </div>
                   </div>
 
-                  <div className="sm:col-span-2 flex items-center justify-end gap-2 pt-3 border-t border-[#EDE6DC]">
+                  <div className="sm:col-span-2 flex items-center justify-end gap-2 pt-3 border-t border-[#EAE3D6]">
                     <button
                       type="button"
                       onClick={() => setEditingProduct(null)}
-                      className="px-4 py-2 bg-[#EFE9DF] text-[#1C1A17] rounded-xl font-semibold"
+                      className="px-4 py-2 bg-[#EFE9DF] text-[#141210] rounded-xl font-semibold"
                     >
                       ביטול
                     </button>
                     <button
                       type="submit"
-                      className="px-6 py-2 bg-[#1C1A17] text-white rounded-xl font-semibold"
+                      className="px-6 py-2 bg-[#141210] text-white rounded-xl font-semibold"
                     >
                       שמור שינויים
                     </button>
@@ -1809,34 +1941,34 @@ export default function App() {
         <div className="fixed inset-0 z-50 flex flex-col justify-end lg:hidden">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setIsMobileFilterOpen(false)} />
           <div className="relative z-50 bg-white rounded-t-3xl max-h-[85vh] overflow-y-auto p-6 space-y-5 shadow-2xl text-xs text-right">
-            <div className="flex items-center justify-between border-b border-[#EDE6DC] pb-3">
-              <div className="flex items-center gap-2 font-serif font-bold text-sm text-[#1C1A17]">
-                <Filter className="w-4 h-4 text-[#9E8255]" />
-                <span>סינון יהלומים ותכשיטים</span>
+            <div className="flex items-center justify-between border-b border-[#EAE3D6] pb-3">
+              <div className="flex items-center gap-2 font-serif font-bold text-sm text-[#141210]">
+                <Filter className="w-4 h-4 text-[#B39359]" />
+                <span>סינון והתאמת תכשיט</span>
               </div>
               <button onClick={() => setIsMobileFilterOpen(false)} className="p-1 rounded-full hover:bg-[#FAF8F5]">
-                <X className="w-5 h-5 text-[#8C8275]" />
+                <X className="w-5 h-5 text-[#8F8171]" />
               </button>
             </div>
 
             <div className="space-y-1.5">
-              <label className="font-bold text-[#575047]">סוג יהלום</label>
+              <label className="font-bold text-[#544B41]">סוג יהלום</label>
               <div className="grid grid-cols-3 gap-1">
                 <button
                   onClick={() => setSelectedDiamondType('all')}
-                  className={`py-2 rounded-xl text-xs font-semibold ${selectedDiamondType === 'all' ? 'bg-[#1C1A17] text-white' : 'bg-[#FAF8F5] border border-[#D5C7B2]'}`}
+                  className={`py-2 rounded-xl text-xs font-semibold ${selectedDiamondType === 'all' ? 'bg-[#141210] text-white' : 'bg-[#FAF8F5] border border-[#EAE3D6]'}`}
                 >
                   הכל
                 </button>
                 <button
                   onClick={() => setSelectedDiamondType('Natural')}
-                  className={`py-2 rounded-xl text-xs font-semibold ${selectedDiamondType === 'Natural' ? 'bg-[#9E8255] text-white font-bold' : 'bg-[#FAF8F5] border border-[#D5C7B2]'}`}
+                  className={`py-2 rounded-xl text-xs font-semibold ${selectedDiamondType === 'Natural' ? 'bg-[#B39359] text-white font-bold' : 'bg-[#FAF8F5] border border-[#EAE3D6]'}`}
                 >
                   טבעי
                 </button>
                 <button
                   onClick={() => setSelectedDiamondType('Lab')}
-                  className={`py-2 rounded-xl text-xs font-semibold ${selectedDiamondType === 'Lab' ? 'bg-[#9E8255] text-white font-bold' : 'bg-[#FAF8F5] border border-[#D5C7B2]'}`}
+                  className={`py-2 rounded-xl text-xs font-semibold ${selectedDiamondType === 'Lab' ? 'bg-[#B39359] text-white font-bold' : 'bg-[#FAF8F5] border border-[#EAE3D6]'}`}
                 >
                   מעבדה
                 </button>
@@ -1844,11 +1976,11 @@ export default function App() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="font-bold text-[#575047]">צורת חיתוך</label>
+              <label className="font-bold text-[#544B41]">צורת חיתוך</label>
               <div className="grid grid-cols-3 gap-1.5">
                 <button
                   onClick={() => setSelectedShape('all')}
-                  className={`col-span-3 py-2 rounded-xl text-xs font-semibold ${selectedShape === 'all' ? 'bg-[#1C1A17] text-white' : 'bg-[#FAF8F5] border border-[#D5C7B2]'}`}
+                  className={`col-span-3 py-2 rounded-xl text-xs font-semibold ${selectedShape === 'all' ? 'bg-[#141210] text-white' : 'bg-[#FAF8F5] border border-[#EAE3D6]'}`}
                 >
                   כל הצורות
                 </button>
@@ -1856,7 +1988,7 @@ export default function App() {
                   <button
                     key={s.value}
                     onClick={() => setSelectedShape(s.value)}
-                    className={`py-2 px-1 rounded-xl text-center flex flex-col items-center justify-center ${selectedShape === s.value ? 'bg-[#9E8255] text-white font-bold' : 'bg-[#FAF8F5] border border-[#D5C7B2]'}`}
+                    className={`py-2 px-1 rounded-xl text-center flex flex-col items-center justify-center ${selectedShape === s.value ? 'bg-[#B39359] text-white font-bold' : 'bg-[#FAF8F5] border border-[#EAE3D6]'}`}
                   >
                     <span className="font-bold text-xs">{s.labelHe}</span>
                     <span className="text-[9px] opacity-75">{s.labelEn}</span>
@@ -1867,7 +1999,7 @@ export default function App() {
 
             <button
               onClick={() => setIsMobileFilterOpen(false)}
-              className="w-full py-3.5 bg-[#1C1A17] text-white rounded-xl font-bold text-xs uppercase tracking-wider"
+              className="w-full py-3.5 bg-[#141210] text-white rounded-full font-bold text-xs uppercase tracking-wider"
             >
               הצג תוצאות ({filteredProducts.length})
             </button>
@@ -1875,7 +2007,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 4. OFFICIAL WHATSAPP FLOATING BUTTON (BOTTOM LEFT - ICON ONLY) */}
+      {/* 5. OFFICIAL WHATSAPP FLOATING BUTTON (BOTTOM LEFT) */}
       <a
         href={WHATSAPP_LINK}
         target="_blank"
@@ -1884,58 +2016,53 @@ export default function App() {
         aria-label="וואטסאפ"
         title="וואטסאפ"
       >
-        <svg 
-          viewBox="0 0 24 24" 
-          width="32" 
-          height="32" 
-          fill="currentColor"
-        >
+        <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor">
           <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2zm.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.19 8.19 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24zm4.52 11.51c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.98-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.02-1.25-.75-.67-1.26-1.5-1.4-1.75-.15-.25-.02-.39.11-.51.11-.11.25-.29.37-.44.13-.15.17-.25.25-.42.08-.17.04-.31-.02-.44-.06-.13-.56-1.35-.77-1.85-.2-.49-.41-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.61.13.17 1.77 2.7 4.29 3.79.6.26 1.07.41 1.44.53.6.19 1.15.16 1.58.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.07-.11-.23-.17-.48-.3z"/>
         </svg>
       </a>
 
-      {/* 5. FOOTER */}
-      <footer className="bg-[#11100E] text-[#EDE6DC] border-t border-[#2B2722] mt-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-right">
+      {/* 6. FOOTER */}
+      <footer className="bg-[#141210] text-[#D8C7B0] border-t border-[#282420] mt-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-16">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 text-right">
             
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <Diamond className="w-5 h-5 text-[#C5A880]" />
-                <span className="font-serif font-bold text-lg text-white">ARIK YAKOBOV DIAMONDS</span>
+                <Diamond className="w-5 h-5 text-[#B39359]" />
+                <span className="font-serif font-bold text-xl text-white">ARIK YAKOBOV DIAMONDS</span>
               </div>
-              <p className="text-xs text-[#D5C7B2]/80 leading-relaxed">
+              <p className="text-xs text-[#D8C7B0]/80 leading-relaxed font-light">
                 ייצור תכשיטים בעיצוב אישי | Lab & Natural Diamonds.
                 <br />
                 חדר עסקאות ישיר בבורסת היהלומים רמת גן, בניין שמשון.
               </p>
             </div>
 
-            <div className="space-y-2 text-xs">
-              <h4 className="font-bold text-white text-sm">פגישות ושירות אישי</h4>
-              <div className="flex items-center gap-2 text-[#D5C7B2]/90">
-                <MapPin className="w-4 h-4 text-[#C5A880]" />
+            <div className="space-y-3 text-xs">
+              <h4 className="font-serif font-bold text-white text-base">פגישות ושירות VIP</h4>
+              <div className="flex items-center gap-2 text-[#D8C7B0]/90">
+                <MapPin className="w-4 h-4 text-[#B39359]" />
                 <span>בורסת היהלומים רמת גן, בניין שמשון</span>
               </div>
-              <div className="flex items-center gap-2 text-[#D5C7B2]/90">
-                <Phone className="w-4 h-4 text-[#C5A880]" />
-                <a href={`tel:${PHONE_NUMBER}`} className="hover:underline">{DISPLAY_PHONE}</a>
+              <div className="flex items-center gap-2 text-[#D8C7B0]/90">
+                <Phone className="w-4 h-4 text-[#B39359]" />
+                <a href={`tel:${PHONE_NUMBER}`} className="hover:underline font-semibold">{DISPLAY_PHONE}</a>
               </div>
             </div>
 
-            <div className="space-y-2 text-xs">
-              <h4 className="font-bold text-white text-sm">ביטחון ואחריות</h4>
-              <p className="text-[#D5C7B2]/80">
+            <div className="space-y-3 text-xs">
+              <h4 className="font-serif font-bold text-white text-base">ביטחון ואחריות</h4>
+              <p className="text-[#D8C7B0]/80 font-light leading-relaxed">
                 כל היהלומים מלווים בתעודה גמולוגית מקורית (GIA / IGI) ואחריות מקיפה לכל החיים.
               </p>
             </div>
           </div>
 
-          <div className="border-t border-[#2B2722] mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between text-[11px] text-[#8C8275] gap-4">
+          <div className="border-t border-[#282420] mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between text-[11px] text-[#8F8171] gap-4">
             <span>© 2026 אריק יעקובוב - Arik Yakobov Diamonds. כל הזכויות שמורות.</span>
             <button 
               onClick={() => navigateTo('admin')} 
-              className="hover:text-[#C5A880] transition-colors cursor-pointer"
+              className="hover:text-[#B39359] transition-colors cursor-pointer"
             >
               כניסת ניהול
             </button>
