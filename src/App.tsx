@@ -11,22 +11,22 @@ import {
   Search, 
   Filter, 
   Check, 
-  SlidersHorizontal,
-  ArrowRight,
-  LogOut,
-  RefreshCw,
-  ChevronDown,
-  Sparkles,
-  Clock,
-  Send,
-  Save,
-  ShieldCheck,
-  Award,
-  Calendar,
-  Image as ImageIcon,
-  FileText,
-  Settings,
-  Trash
+  SlidersHorizontal, 
+  ArrowRight, 
+  LogOut, 
+  RefreshCw, 
+  ChevronDown, 
+  Sparkles, 
+  Clock, 
+  Send, 
+  Save, 
+  ShieldCheck, 
+  Award, 
+  Calendar, 
+  Image as ImageIcon, 
+  FileText, 
+  Settings, 
+  Trash 
 } from 'lucide-react';
 import { supabase } from './supabase';
 
@@ -38,11 +38,11 @@ export type DiamondShape =
   | 'Cushion' 
   | 'Pear' 
   | 'Princess' 
-  | 'Marquise'
+  | 'Marquise' 
   | 'Heart';
 
 export type ProductCategory = 
-  | 'all'
+  | 'all' 
   | 'engagement' 
   | 'loose' 
   | 'tennis' 
@@ -222,7 +222,7 @@ export default function App() {
   const [aboutText, setAboutText] = useState(() => localStorage.getItem('ay_about_text') || 'אנו מתמחים בייצור תכשיטי עילית בעיצוב אישי וברכישת יהלומים טבעיים ויהלומי מעבדה ישירות מחברי בורסת היהלומים ברמת גן, ללא פערי תיווך וללא עמלות מיותרות.');
   const [marqueeText, setMarqueeText] = useState(() => localStorage.getItem('ay_marquee_text') || DEFAULT_MARQUEE_TEXT);
 
-  // Dynamic Carousel Slides connected to Supabase
+  // Dynamic Carousel Slides
   const [carouselSlides, setCarouselSlides] = useState<CarouselSlide[]>(DEFAULT_CAROUSEL_SLIDES);
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
 
@@ -504,7 +504,7 @@ export default function App() {
     setVerifyCode('');
   };
 
-  // Carousel Handlers (Connected to Supabase)
+  // Carousel Handlers
   const handleAddSlide = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSlide.title || !newSlide.tag) {
@@ -540,7 +540,6 @@ export default function App() {
       image: slideImageUrl
     };
 
-    // Save to Supabase
     const { error } = await supabase.from('carousel_slides').insert([slideObj]);
 
     if (!error) {
@@ -551,7 +550,6 @@ export default function App() {
       if (slideFileInputRef.current) slideFileInputRef.current.value = '';
       alert('שקופית חדשה נוספה בהצלחה ונשמרה בכל האתר!');
     } else {
-      // Fallback local update
       setCarouselSlides(prev => [...prev, slideObj]);
       localStorage.setItem('ay_carousel_slides', JSON.stringify([...carouselSlides, slideObj]));
       setNewSlide({ title: '', tag: '', image: '' });
@@ -567,7 +565,6 @@ export default function App() {
     }
     if (!window.confirm('האם להסיר לצמיתות שקופית זו מהאתר?')) return;
 
-    // Delete from Supabase
     await supabase.from('carousel_slides').delete().eq('id', id);
 
     const updated = carouselSlides.filter(s => s.id !== id);
@@ -1523,6 +1520,972 @@ export default function App() {
             </div>
           </div>
         </main>
+      )}
+
+      {/* 5. ULTIMATE ADMIN DASHBOARD */}
+      {currentRoute === 'admin' && (
+        <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-8 py-10 w-full text-right">
+          {!isAdminAuthenticated ? (
+            <div className="max-w-md mx-auto my-12 p-8 rounded-3xl bg-[#141210] border border-[#282420] text-white shadow-2xl text-center space-y-6">
+              <div className="w-14 h-14 mx-auto rounded-full bg-[#201D19] border border-[#B39359]/30 flex items-center justify-center text-[#B39359]">
+                <Diamond className="w-6 h-6" />
+              </div>
+
+              {authStep === 'credentials' && (
+                <>
+                  <div>
+                    <h2 className="text-xl font-serif font-bold text-[#FAF8F5]">כניסת מנהל מערכת</h2>
+                    <p className="text-xs text-[#8F8171] mt-1">אימות מאובטח מול Supabase</p>
+                  </div>
+
+                  <form onSubmit={handleLogin} className="space-y-4 text-right">
+                    <div>
+                      <label className="block text-xs font-semibold text-[#D8C7B0] mb-1">אימייל מנהל</label>
+                      <input
+                        type="email"
+                        required
+                        value={emailInput}
+                        onChange={(e) => setEmailInput(e.target.value)}
+                        placeholder="admin@arikdiamonds.com"
+                        dir="ltr"
+                        className="w-full px-4 py-2.5 rounded-xl bg-[#201D19] border border-[#3A342D] text-sm text-white focus:outline-none focus:border-[#B39359]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-[#D8C7B0] mb-1">סיסמה</label>
+                      <input
+                        type="password"
+                        required
+                        value={passwordInput}
+                        onChange={(e) => setPasswordInput(e.target.value)}
+                        placeholder="••••••••"
+                        dir="ltr"
+                        className="w-full px-4 py-2.5 rounded-xl bg-[#201D19] border border-[#3A342D] text-sm text-white focus:outline-none focus:border-[#B39359]"
+                      />
+                    </div>
+
+                    {loginError && <p className="text-xs text-rose-400 font-semibold text-center">{loginError}</p>}
+
+                    <button
+                      type="submit"
+                      disabled={isLoadingAuth}
+                      className="w-full py-3.5 rounded-xl bg-[#B39359] text-[#141210] font-bold text-xs tracking-wider uppercase hover:bg-[#a18349] transition-colors disabled:opacity-50 cursor-pointer"
+                    >
+                      {isLoadingAuth ? 'בודק...' : 'המשך לאימות'}
+                    </button>
+                  </form>
+                </>
+              )}
+
+              {authStep === 'enroll_qr' && (
+                <>
+                  <div>
+                    <h2 className="text-xl font-serif font-bold text-white">הגדרת אימות דו-שלבי (2FA)</h2>
+                    <p className="text-xs text-[#8F8171] mt-1 leading-relaxed">
+                      סרוק את ה-QR באפליקציית Authenticator והזן את 6 הספרות.
+                    </p>
+                  </div>
+
+                  {qrCodeUrl && (
+                    <div className="flex justify-center p-3 bg-white border border-[#EAE3D6] rounded-2xl max-w-[190px] mx-auto">
+                      <img src={qrCodeUrl} alt="2FA QR Code" className="w-full h-auto" />
+                    </div>
+                  )}
+
+                  <form onSubmit={handleVerifyEnroll} className="space-y-4">
+                    <input
+                      type="text"
+                      required
+                      maxLength={6}
+                      value={verifyCode}
+                      onChange={(e) => setVerifyCode(e.target.value)}
+                      placeholder="123456"
+                      dir="ltr"
+                      className="w-full px-4 py-2.5 rounded-xl bg-[#201D19] border border-[#3A342D] text-center text-xl font-mono tracking-widest text-white focus:outline-none focus:border-[#B39359]"
+                    />
+
+                    {loginError && <p className="text-xs text-rose-400 font-semibold">{loginError}</p>}
+
+                    <button
+                      type="submit"
+                      disabled={isLoadingAuth}
+                      className="w-full py-3.5 rounded-xl bg-[#B39359] text-[#141210] font-bold text-xs tracking-wider uppercase hover:bg-[#a18349]"
+                    >
+                      {isLoadingAuth ? 'מאמת...' : 'הפעל 2FA והיכנס'}
+                    </button>
+                  </form>
+                </>
+              )}
+
+              {authStep === 'verify_code' && (
+                <>
+                  <div>
+                    <h2 className="text-xl font-serif font-bold text-white">אימות דו-שלבי (2FA)</h2>
+                    <p className="text-xs text-[#8F8171] mt-1">הזן את 6 הספרות מהאפליקציה</p>
+                  </div>
+
+                  <form onSubmit={handleVerifyLogin} className="space-y-4">
+                    <input
+                      type="text"
+                      required
+                      maxLength={6}
+                      value={verifyCode}
+                      onChange={(e) => setVerifyCode(e.target.value)}
+                      placeholder="123456"
+                      dir="ltr"
+                      className="w-full px-4 py-2.5 rounded-xl bg-[#201D19] border border-[#3A342D] text-center text-xl font-mono tracking-widest text-white focus:outline-none focus:border-[#B39359]"
+                    />
+
+                    {loginError && <p className="text-xs text-rose-400 font-semibold">{loginError}</p>}
+
+                    <button
+                      type="submit"
+                      disabled={isLoadingAuth}
+                      className="w-full py-3.5 rounded-xl bg-[#B39359] text-[#141210] font-bold text-xs tracking-wider uppercase hover:bg-[#a18349]"
+                    >
+                      {isLoadingAuth ? 'מאמת...' : 'כניסה למערכת'}
+                    </button>
+                  </form>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-8">
+
+              {/* ADMIN TOP CONTROL BAR */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#141210] p-6 rounded-3xl border border-[#282420] text-white shadow-xl">
+                <div>
+                  <span className="text-[11px] font-mono text-[#B39359] tracking-widest uppercase">CONTROL CENTER</span>
+                  <h1 className="text-xl sm:text-2xl font-serif font-bold text-white mt-0.5">דשבורד ניהול תוכן - Arik Yakobov</h1>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={fetchProducts}
+                    className="p-2.5 px-4 rounded-full border border-[#B39359]/30 bg-[#201D19] hover:bg-[#2A2621] text-[#D8C7B0] transition-colors flex items-center gap-2 text-xs font-semibold"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 text-[#B39359]" />
+                    <span>רענן נתונים</span>
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="p-2.5 px-5 rounded-full bg-[#B39359] text-[#141210] hover:bg-[#a18349] transition-colors flex items-center gap-2 text-xs font-bold"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>התנתק</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* DASHBOARD TABS NAVIGATION */}
+              <div className="flex flex-wrap gap-2 border-b border-[#EAE3D6] pb-4">
+                <button
+                  onClick={() => setAdminTab('products')}
+                  className={`px-5 py-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
+                    adminTab === 'products'
+                      ? 'bg-[#141210] text-[#B39359] shadow-md'
+                      : 'bg-white text-[#544B41] border border-[#EAE3D6] hover:bg-[#FAF8F5]'
+                  }`}
+                >
+                  <Diamond className="w-4 h-4" />
+                  <span>ניהול מלאי ומוצרים ({products.length})</span>
+                </button>
+
+                <button
+                  onClick={() => setAdminTab('carousel')}
+                  className={`px-5 py-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
+                    adminTab === 'carousel'
+                      ? 'bg-[#141210] text-[#B39359] shadow-md'
+                      : 'bg-white text-[#544B41] border border-[#EAE3D6] hover:bg-[#FAF8F5]'
+                  }`}
+                >
+                  <ImageIcon className="w-4 h-4" />
+                  <span>סליידר דף הבית ({carouselSlides.length})</span>
+                </button>
+
+                <button
+                  onClick={() => setAdminTab('content')}
+                  className={`px-5 py-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
+                    adminTab === 'content'
+                      ? 'bg-[#141210] text-[#B39359] shadow-md'
+                      : 'bg-white text-[#544B41] border border-[#EAE3D6] hover:bg-[#FAF8F5]'
+                  }`}
+                >
+                  <FileText className="w-4 h-4" />
+                  <span>תוכן, טקסטים ו-Ticker</span>
+                </button>
+
+                <button
+                  onClick={() => setAdminTab('settings')}
+                  className={`px-5 py-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
+                    adminTab === 'settings'
+                      ? 'bg-[#141210] text-[#B39359] shadow-md'
+                      : 'bg-white text-[#544B41] border border-[#EAE3D6] hover:bg-[#FAF8F5]'
+                  }`}
+                >
+                  <Settings className="w-4 h-4" />
+                  <span>טלפון ופרטי קשר</span>
+                </button>
+              </div>
+
+              {/* TAB 1: PRODUCTS MANAGER */}
+              {adminTab === 'products' && (
+                <div className="space-y-8 animate-in fade-in duration-150">
+                  
+                  {/* ADD PRODUCT */}
+                  <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EAE3D6] shadow-xs space-y-6">
+                    <div className="flex items-center gap-2 border-b border-[#EAE3D6] pb-4">
+                      <Plus className="w-5 h-5 text-[#B39359]" />
+                      <h2 className="font-serif font-bold text-lg text-[#141210]">הוספת פריט חדש לקולקציה</h2>
+                    </div>
+
+                    <form onSubmit={handleAddProduct} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                      <div className="sm:col-span-2">
+                        <label className="block mb-1 font-semibold text-[#544B41]">כותרת ושם הפריט *</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="טבעת סוליטר בשיבוץ יהלום מרקיזה 1.80 קראט"
+                          value={newProduct.title}
+                          onChange={e => setNewProduct({ ...newProduct, title: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">מחיר (₪) *</label>
+                        <input
+                          type="number"
+                          required
+                          placeholder="35000"
+                          value={newProduct.price}
+                          onChange={e => setNewProduct({ ...newProduct, price: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">קטגוריה</label>
+                        <select
+                          value={newProduct.category}
+                          onChange={e => setNewProduct({ ...newProduct, category: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        >
+                          <option value="engagement">טבעות אירוסין</option>
+                          <option value="loose">יהלומים משוחררים</option>
+                          <option value="tennis">צמידי טניס</option>
+                          <option value="earrings">עגילי יהלומים</option>
+                          <option value="high_jewelry">תכשיטי יוקרה בעיצוב אישי</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">סוג יהלום</label>
+                        <select
+                          value={newProduct.diamond_type}
+                          onChange={e => setNewProduct({ ...newProduct, diamond_type: e.target.value as any })}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        >
+                          <option value="Natural">טבעי (Natural)</option>
+                          <option value="Lab">מעבדה (Lab)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">צורת חיתוך (בעברית)</label>
+                        <select
+                          value={newProduct.shape}
+                          onChange={e => setNewProduct({ ...newProduct, shape: e.target.value as DiamondShape })}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        >
+                          {SHAPES_DATA.map(s => (
+                            <option key={s.value} value={s.value}>
+                              {s.labelHe} ({s.labelEn})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">משקל קראט</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          placeholder="1.50"
+                          value={newProduct.carat}
+                          onChange={e => setNewProduct({ ...newProduct, carat: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">צבע (Color)</label>
+                        <input
+                          type="text"
+                          placeholder="D / E / F"
+                          value={newProduct.color}
+                          onChange={e => setNewProduct({ ...newProduct, color: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">ניקיון (Clarity)</label>
+                        <input
+                          type="text"
+                          placeholder="VVS1 / VS1"
+                          value={newProduct.clarity}
+                          onChange={e => setNewProduct({ ...newProduct, clarity: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">רמת חיתוך (Cut)</label>
+                        <input
+                          type="text"
+                          placeholder="Excellent"
+                          value={newProduct.cut}
+                          onChange={e => setNewProduct({ ...newProduct, cut: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">תעודה גמולוגית</label>
+                        <input
+                          type="text"
+                          placeholder="GIA / IGI"
+                          value={newProduct.certificate}
+                          onChange={e => setNewProduct({ ...newProduct, certificate: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">סטטוס פריט</label>
+                        <select
+                          value={newProduct.status}
+                          onChange={e => setNewProduct({ ...newProduct, status: e.target.value as any })}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        >
+                          <option value="available">זמין בגלריה</option>
+                          <option value="reserved">שמור ללקוח</option>
+                          <option value="sold">נמכר</option>
+                        </select>
+                      </div>
+
+                      <div className="sm:col-span-2 lg:col-span-3 p-4 rounded-2xl bg-[#FAF8F5] border border-dashed border-[#EAE3D6] flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            ref={fileInputRef}
+                            onChange={(e) => {
+                              if (e.target.files?.[0]) {
+                                setNewSlideImagePreview(URL.createObjectURL(e.target.files[0]));
+                              }
+                            }}
+                            className="hidden"
+                            id="new-product-image-upload"
+                          />
+                          <label
+                            htmlFor="new-product-image-upload"
+                            className="px-4 py-2 bg-[#141210] text-[#D8C7B0] rounded-xl text-xs font-semibold cursor-pointer hover:bg-[#201D19]"
+                          >
+                            בחר קובץ תמונה מהמכשיר
+                          </label>
+                          <span className="text-[11px] text-[#8F8171]">JPG, PNG, WEBP באיכות גבוהה</span>
+                        </div>
+
+                        {uploadedImagePreview && (
+                          <div className="flex items-center gap-2">
+                            <img src={uploadedImagePreview} alt="Preview" className="w-12 h-12 rounded-lg object-cover border border-[#EAE3D6]" />
+                            <span className="text-[11px] text-[#B39359] font-semibold">תמונה נבחרה בהצלחה</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="sm:col-span-2 lg:col-span-3 flex justify-end">
+                        <button
+                          type="submit"
+                          className="w-full sm:w-auto px-8 py-3 bg-[#141210] text-[#D8C7B0] rounded-xl font-semibold text-xs tracking-wider uppercase hover:bg-[#201D19] shadow-xs cursor-pointer"
+                        >
+                          שמור פריט ב-Supabase
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+
+                  {/* TABLE */}
+                  <div className="bg-white rounded-3xl border border-[#EAE3D6] shadow-xs overflow-hidden">
+                    <div className="p-6 border-b border-[#EAE3D6] flex justify-between items-center">
+                      <h3 className="font-serif font-bold text-base text-[#141210]">
+                        פריטים פעילים בקולקציה ({products.length})
+                      </h3>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-right text-xs">
+                        <thead className="bg-[#FAF8F5] text-[#8F8171] border-b border-[#EAE3D6]">
+                          <tr>
+                            <th className="py-3.5 px-4 font-semibold">תמונה</th>
+                            <th className="py-3.5 px-4 font-semibold">כותרת</th>
+                            <th className="py-3.5 px-4 font-semibold">סוג</th>
+                            <th className="py-3.5 px-4 font-semibold">חיתוך</th>
+                            <th className="py-3.5 px-4 font-semibold">קראט</th>
+                            <th className="py-3.5 px-4 font-semibold">צבע/ניקיון</th>
+                            <th className="py-3.5 px-4 font-semibold">מחיר</th>
+                            <th className="py-3.5 px-4 font-semibold">סטטוס</th>
+                            <th className="py-3.5 px-4 font-semibold text-center">פעולות</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#EAE3D6]">
+                          {products.map(p => {
+                            const shapeObj = SHAPES_DATA.find(s => s.value === p.shape);
+                            return (
+                              <tr key={p.id} className="hover:bg-[#FAF8F5]/80 transition-colors">
+                                <td className="py-3 px-4">
+                                  <img src={p.image} alt={p.title} className="w-12 h-12 object-cover rounded-lg border border-[#EAE3D6]" />
+                                </td>
+                                <td className="py-3 px-4 font-medium max-w-xs truncate">{p.title}</td>
+                                <td className="py-3 px-4">
+                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${p.diamond_type === 'Lab' ? 'bg-amber-50 text-amber-700' : 'bg-neutral-100 text-neutral-800'}`}>
+                                    {p.diamond_type === 'Lab' ? 'מעבדה' : 'טבעי'}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4 font-medium text-[#B39359]">
+                                  {shapeObj ? shapeObj.labelHe : p.shape}
+                                </td>
+                                <td className="py-3 px-4">{p.carat} ct</td>
+                                <td className="py-3 px-4">{p.color} / {p.clarity}</td>
+                                <td className="py-3 px-4 font-bold text-[#141210]">₪{p.price.toLocaleString()}</td>
+                                <td className="py-3 px-4">
+                                  <select
+                                    value={p.status}
+                                    onChange={(e) => handleStatusChange(p.id, e.target.value as any)}
+                                    className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border ${
+                                      p.status === 'available'
+                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                        : p.status === 'reserved'
+                                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                        : 'bg-rose-50 text-rose-700 border-rose-200'
+                                    }`}
+                                  >
+                                    <option value="available">זמין</option>
+                                    <option value="reserved">שמור</option>
+                                    <option value="sold">נמכר</option>
+                                  </select>
+                                </td>
+                                <td className="py-3 px-4 text-center">
+                                  <div className="flex items-center justify-center gap-1.5">
+                                    <button
+                                      onClick={() => {
+                                        setEditingProduct(p);
+                                        setUploadedImagePreview(p.image);
+                                      }}
+                                      className="p-1.5 text-[#B39359] hover:bg-[#F5F0E6] rounded-lg transition-colors cursor-pointer"
+                                      title="ערוך פריט"
+                                    >
+                                      <Edit3 className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDelete(p.id)}
+                                      className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                      title="מחק פריט"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: HERO CAROUSEL MANAGER */}
+              {adminTab === 'carousel' && (
+                <div className="space-y-8 animate-in fade-in duration-150">
+                  
+                  {/* ADD NEW SLIDE */}
+                  <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EAE3D6] shadow-xs space-y-6">
+                    <div className="flex items-center gap-2 border-b border-[#EAE3D6] pb-4">
+                      <Plus className="w-5 h-5 text-[#B39359]" />
+                      <h2 className="font-serif font-bold text-lg text-[#141210]">הוספת שקופית חדשה לקרוסלת דף הבית</h2>
+                    </div>
+
+                    <form onSubmit={handleAddSlide} className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">כותרת השקופית *</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="טבעת סוליטר מרקיזה 2.00 קראט"
+                          value={newSlide.title}
+                          onChange={e => setNewSlide({ ...newSlide, title: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">תגית עליונה (Tag) *</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Natural Diamond / עיצוב אישי"
+                          value={newSlide.tag}
+                          onChange={e => setNewSlide({ ...newSlide, tag: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-2 p-4 rounded-2xl bg-[#FAF8F5] border border-dashed border-[#EAE3D6] flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            ref={slideFileInputRef}
+                            onChange={(e) => {
+                              if (e.target.files?.[0]) {
+                                setNewSlideImagePreview(URL.createObjectURL(e.target.files[0]));
+                              }
+                            }}
+                            className="hidden"
+                            id="new-slide-image-upload"
+                          />
+                          <label
+                            htmlFor="new-slide-image-upload"
+                            className="px-4 py-2 bg-[#141210] text-[#D8C7B0] rounded-xl text-xs font-semibold cursor-pointer hover:bg-[#201D19]"
+                          >
+                            בחר תמונה מהמכשיר
+                          </label>
+                          <span className="text-[11px] text-[#8F8171]">או הדבק קישור ישיר למטה</span>
+                        </div>
+
+                        {newSlideImagePreview && (
+                          <div className="flex items-center gap-2">
+                            <img src={newSlideImagePreview} alt="Preview" className="w-12 h-12 rounded-lg object-cover border border-[#EAE3D6]" />
+                            <span className="text-[11px] text-[#B39359] font-semibold">תמונה מוכנה</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <label className="block mb-1 font-semibold text-[#544B41]">קישור לתמונה (URL מתוך תיקיית images או ענן)</label>
+                        <input
+                          type="text"
+                          placeholder="/images/ring-oval-gold.webp"
+                          value={newSlide.image}
+                          onChange={e => setNewSlide({ ...newSlide, image: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-2 flex justify-end">
+                        <button
+                          type="submit"
+                          className="px-8 py-3 bg-[#141210] text-[#D8C7B0] rounded-xl font-semibold text-xs uppercase tracking-wider hover:bg-[#201D19]"
+                        >
+                          הוסף שקופית לקרוסלה
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+
+                  {/* CURRENT SLIDES LIST */}
+                  <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EAE3D6] shadow-xs space-y-6">
+                    <h3 className="font-serif font-bold text-base text-[#141210]">שקופיות פעילות בקרוסלה ({carouselSlides.length})</h3>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {carouselSlides.map((slide, idx) => (
+                        <div key={slide.id} className="p-4 rounded-2xl border border-[#EAE3D6] bg-[#FAF8F5] space-y-3 flex flex-col justify-between">
+                          <div className="space-y-2">
+                            <div className="aspect-square rounded-xl overflow-hidden border border-[#EAE3D6] bg-black relative">
+                              <img src={slide.image} alt={slide.title} className="w-full h-full object-cover" />
+                              <span className="absolute top-2 right-2 px-2.5 py-1 bg-black/70 text-white rounded-full text-[10px] font-mono">
+                                #{idx + 1}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-[#B39359] font-mono block">{slide.tag}</span>
+                              <h4 className="font-bold text-xs text-[#141210]">{slide.title}</h4>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => handleDeleteSlide(slide.id)}
+                            className="w-full py-2 bg-rose-50 text-rose-600 rounded-xl text-xs font-semibold hover:bg-rose-100 transition-colors flex items-center justify-center gap-1.5"
+                          >
+                            <Trash className="w-3.5 h-3.5" />
+                            <span>הסר שקופית זו</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: CONTENT & TEXTS */}
+              {adminTab === 'content' && (
+                <div className="space-y-8 animate-in fade-in duration-150">
+                  <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EAE3D6] shadow-xs space-y-6">
+                    <h3 className="font-serif font-bold text-base text-[#141210]">עריכת טקסטים ותכנים באתר</h3>
+
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      localStorage.setItem('ay_marquee_text', marqueeText);
+                      localStorage.setItem('ay_hero_title', heroTitle);
+                      localStorage.setItem('ay_hero_subtitle', heroSubTitle);
+                      localStorage.setItem('ay_about_text', aboutText);
+                      alert('כל הטקסטים נשמרו ועודכנו בהצלחה באתר!');
+                    }} className="space-y-5 text-xs">
+                      
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">השורה הרצה למעלה (Ticker Marquee)</label>
+                        <input
+                          type="text"
+                          required
+                          value={marqueeText}
+                          onChange={e => setMarqueeText(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">כותרת ראשית בדף הבית (Hero Title)</label>
+                        <input
+                          type="text"
+                          required
+                          value={heroTitle}
+                          onChange={e => setHeroTitle(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">תת-כותרת בדף הבית (Hero Subtitle)</label>
+                        <textarea
+                          rows={3}
+                          required
+                          value={heroSubTitle}
+                          onChange={e => setHeroSubTitle(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">תוכן עמוד "אודות" (About Us)</label>
+                        <textarea
+                          rows={4}
+                          required
+                          value={aboutText}
+                          onChange={e => setAboutText(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        />
+                      </div>
+
+                      <div className="flex justify-end">
+                        <button
+                          type="submit"
+                          className="px-8 py-3 bg-[#141210] text-[#D8C7B0] rounded-xl font-semibold text-xs flex items-center gap-2 hover:bg-[#201D19]"
+                        >
+                          <Save className="w-4 h-4 text-[#B39359]" />
+                          <span>שמור ועדכן את כל הטקסטים באתר</span>
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 4: SETTINGS & CONTACT */}
+              {adminTab === 'settings' && (
+                <div className="space-y-8 animate-in fade-in duration-150">
+                  <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EAE3D6] shadow-xs space-y-6">
+                    <h3 className="font-serif font-bold text-base text-[#141210]">הגדרות טלפון ופרטי קשר</h3>
+
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      localStorage.setItem('ay_phone', phoneText);
+                      alert('מספר הטלפון עודכן בהצלחה בכל האתר!');
+                    }} className="space-y-4 text-xs">
+                      <div>
+                        <label className="block mb-1 font-semibold text-[#544B41]">מספר טלפון לתצוגה ושיחות</label>
+                        <input
+                          type="text"
+                          required
+                          value={phoneText}
+                          onChange={e => setPhoneText(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                        />
+                      </div>
+
+                      <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-[#EAE3D6] text-[#8F8171] space-y-1">
+                        <p>📍 <strong>כתובת הבוטיק:</strong> בורסת היהלומים רמת גן, בניין שמשון</p>
+                        <p>💬 <strong>קישור וואטסאפ:</strong> נוצר אוטומטית לפי המספר שהזנת</p>
+                      </div>
+
+                      <div className="flex justify-end">
+                        <button
+                          type="submit"
+                          className="px-8 py-3 bg-[#141210] text-[#D8C7B0] rounded-xl font-semibold text-xs flex items-center gap-2 hover:bg-[#201D19]"
+                        >
+                          <Save className="w-4 h-4 text-[#B39359]" />
+                          <span>שמור הגדרות</span>
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* EDIT PRODUCT MODAL */}
+          {editingProduct && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+              <div className="bg-white border border-[#EAE3D6] rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 relative shadow-2xl max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between border-b border-[#EAE3D6] pb-4">
+                  <div className="flex items-center gap-2">
+                    <Edit3 className="w-5 h-5 text-[#B39359]" />
+                    <h3 className="font-serif font-bold text-lg text-[#141210]">עריכת פריט</h3>
+                  </div>
+                  <button onClick={() => setEditingProduct(null)} className="p-1.5 rounded-full hover:bg-[#FAF8F5]">
+                    <X className="w-5 h-5 text-[#8F8171]" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleUpdateProduct} className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  <div className="sm:col-span-2">
+                    <label className="block mb-1 font-semibold text-[#544B41]">כותרת ושם הפריט</label>
+                    <input
+                      type="text"
+                      required
+                      value={editingProduct.title}
+                      onChange={e => setEditingProduct({ ...editingProduct, title: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block mb-1 font-semibold text-[#544B41]">מחיר (₪)</label>
+                    <input
+                      type="number"
+                      required
+                      value={editingProduct.price}
+                      onChange={e => setEditingProduct({ ...editingProduct, price: Number(e.target.value) })}
+                      className="w-full px-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block mb-1 font-semibold text-[#544B41]">קטגוריה</label>
+                    <select
+                      value={editingProduct.category}
+                      onChange={e => setEditingProduct({ ...editingProduct, category: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                    >
+                      <option value="engagement">טבעות אירוסין</option>
+                      <option value="loose">יהלומים משוחררים</option>
+                      <option value="tennis">צמידי טניס</option>
+                      <option value="earrings">עגילי יהלומים</option>
+                      <option value="high_jewelry">תכשיטי יוקרה בעיצוב אישי</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block mb-1 font-semibold text-[#544B41]">סוג יהלום</label>
+                    <select
+                      value={editingProduct.diamond_type || 'Natural'}
+                      onChange={e => setEditingProduct({ ...editingProduct, diamond_type: e.target.value as any })}
+                      className="w-full px-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                    >
+                      <option value="Natural">טבעי (Natural)</option>
+                      <option value="Lab">מעבדה (Lab)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block mb-1 font-semibold text-[#544B41]">צורת חיתוך</label>
+                    <select
+                      value={editingProduct.shape}
+                      onChange={e => setEditingProduct({ ...editingProduct, shape: e.target.value as DiamondShape })}
+                      className="w-full px-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                    >
+                      {SHAPES_DATA.map(s => (
+                        <option key={s.value} value={s.value}>
+                          {s.labelHe} ({s.labelEn})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block mb-1 font-semibold text-[#544B41]">משקל קראט</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editingProduct.carat}
+                      onChange={e => setEditingProduct({ ...editingProduct, carat: Number(e.target.value) })}
+                      className="w-full px-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block mb-1 font-semibold text-[#544B41]">צבע</label>
+                    <input
+                      type="text"
+                      value={editingProduct.color}
+                      onChange={e => setEditingProduct({ ...editingProduct, color: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block mb-1 font-semibold text-[#544B41]">ניקיון</label>
+                    <input
+                      type="text"
+                      value={editingProduct.clarity}
+                      onChange={e => setEditingProduct({ ...editingProduct, clarity: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block mb-1 font-semibold text-[#544B41]">סטטוס</label>
+                    <select
+                      value={editingProduct.status}
+                      onChange={e => setEditingProduct({ ...editingProduct, status: e.target.value as any })}
+                      className="w-full px-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#EAE3D6]"
+                    >
+                      <option value="available">זמין בגלריה</option>
+                      <option value="reserved">שמור ללקוח</option>
+                      <option value="sold">נמכר</option>
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-2 p-3 bg-[#FAF8F5] border border-[#EAE3D6] rounded-2xl flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <img src={uploadedImagePreview || editingProduct.image} alt="Preview" className="w-14 h-14 object-cover rounded-xl border border-[#EAE3D6]" />
+                      <span className="text-[11px] text-[#544B41]">תמונה נוכחית</span>
+                    </div>
+
+                    <div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        ref={editFileInputRef}
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) {
+                            setUploadedImagePreview(URL.createObjectURL(e.target.files[0]));
+                          }
+                        }}
+                        className="hidden"
+                        id="edit-modal-image-upload"
+                      />
+                      <label htmlFor="edit-modal-image-upload" className="px-3.5 py-2 bg-[#141210] text-[#D8C7B0] rounded-xl cursor-pointer text-[11px] font-semibold">
+                        החלף תמונה
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="sm:col-span-2 flex items-center justify-end gap-2 pt-3 border-t border-[#EAE3D6]">
+                    <button
+                      type="button"
+                      onClick={() => setEditingProduct(null)}
+                      className="px-4 py-2 bg-[#EFE9DF] text-[#141210] rounded-xl font-semibold"
+                    >
+                      ביטול
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-6 py-2 bg-[#141210] text-white rounded-xl font-semibold"
+                    >
+                      שמור שינויים
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </main>
+      )}
+
+      {/* MOBILE FILTERS DRAWER */}
+      {isMobileFilterOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end lg:hidden">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setIsMobileFilterOpen(false)} />
+          <div className="relative z-50 bg-white rounded-t-3xl max-h-[85vh] overflow-y-auto p-6 space-y-5 shadow-2xl text-xs text-right">
+            <div className="flex items-center justify-between border-b border-[#EAE3D6] pb-3">
+              <div className="flex items-center gap-2 font-serif font-bold text-sm text-[#141210]">
+                <Filter className="w-4 h-4 text-[#B39359]" />
+                <span>סינון והתאמת תכשיט</span>
+              </div>
+              <button onClick={() => setIsMobileFilterOpen(false)} className="p-1 rounded-full hover:bg-[#FAF8F5]">
+                <X className="w-5 h-5 text-[#8F8171]" />
+              </button>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="font-bold text-[#544B41]">סוג יהלום</label>
+              <div className="grid grid-cols-3 gap-1">
+                <button
+                  onClick={() => setSelectedDiamondType('all')}
+                  className={`py-2 rounded-xl text-xs font-semibold ${selectedDiamondType === 'all' ? 'bg-[#141210] text-white' : 'bg-[#FAF8F5] border border-[#EAE3D6]'}`}
+                >
+                  הכל
+                </button>
+                <button
+                  onClick={() => setSelectedDiamondType('Natural')}
+                  className={`py-2 rounded-xl text-xs font-semibold ${selectedDiamondType === 'Natural' ? 'bg-[#B39359] text-white font-bold' : 'bg-[#FAF8F5] border border-[#EAE3D6]'}`}
+                >
+                  טבעי
+                </button>
+                <button
+                  onClick={() => setSelectedDiamondType('Lab')}
+                  className={`py-2 rounded-xl text-xs font-semibold ${selectedDiamondType === 'Lab' ? 'bg-[#B39359] text-white font-bold' : 'bg-[#FAF8F5] border border-[#EAE3D6]'}`}
+                >
+                  מעבדה
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="font-bold text-[#544B41]">צורת חיתוך</label>
+              <div className="grid grid-cols-3 gap-1.5">
+                <button
+                  onClick={() => setSelectedShape('all')}
+                  className={`col-span-3 py-2 rounded-xl text-xs font-semibold ${selectedShape === 'all' ? 'bg-[#141210] text-white' : 'bg-[#FAF8F5] border border-[#EAE3D6]'}`}
+                >
+                  כל הצורות
+                </button>
+                {SHAPES_DATA.map(s => (
+                  <button
+                    key={s.value}
+                    onClick={() => setSelectedShape(s.value)}
+                    className={`py-2 px-1 rounded-xl text-center flex flex-col items-center justify-center ${selectedShape === s.value ? 'bg-[#B39359] text-white font-bold' : 'bg-[#FAF8F5] border border-[#EAE3D6]'}`}
+                  >
+                    <span className="font-bold text-xs">{s.labelHe}</span>
+                    <span className="text-[9px] opacity-75">{s.labelEn}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsMobileFilterOpen(false)}
+              className="w-full py-3.5 bg-[#141210] text-white rounded-full font-bold text-xs uppercase tracking-wider"
+            >
+              הצג תוצאות ({filteredProducts.length})
+            </button>
+          </div>
+        </div>
       )}
 
       {/* 6. OFFICIAL WHATSAPP FLOATING BUTTON */}
